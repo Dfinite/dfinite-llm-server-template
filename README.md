@@ -42,22 +42,6 @@ docker-compose.yaml
 └── reranker          ← 항상 실행, tp=1, 포트 8001
 ```
 
-### 왜 LLM과 Reranker가 서로 독립적인가?
-
-Docker Compose에서 각 서비스는 **별도 컨테이너 = 별도 프로세스 공간**입니다. `docker compose stop vllm`을 실행하면 vllm 컨테이너만 종료되고, reranker 컨테이너는 Docker 데몬이 독립적으로 유지합니다. 그래서:
-
-- LLM 모델을 교체할 때 (`stop vllm` → 새 모델 `start`) Reranker 서비스는 무중단
-- Reranker를 재시작해도 LLM에 영향 없음
-- 각 서비스별 개별 로그, 헬스체크, 자동 재시작 가능
-
-단, `docker compose down`은 **전체 프로젝트를 내리는 명령**이라 두 서비스 모두 종료됩니다. 개별 서비스만 관리할 때는 반드시 `stop`/`rm`을 쓰세요.
-
-```
-GPU 메모리 분배 (A6000 48GB × 2 = 96GB):
-  LLM:      gpu_memory_utilization=0.80 → ~77GB
-  Reranker: gpu_memory_utilization=0.05 → ~4.8GB (568M 모델에 충분)
-```
-
 ## 디렉토리 구조
 
 ```
@@ -99,9 +83,6 @@ chmod +x start.sh stop.sh health_check.sh
 # 5. (선택) HuggingFace 토큰
 export HF_TOKEN="hf_..."
 ```
-
-> **venv은 왜 별도로 안 만드나요?**
-> 모델 서빙 자체는 Docker 컨테이너 안에서 돌아가므로 호스트에 vLLM을 설치할 필요가 없습니다. 호스트에 필요한 건 `pyyaml` 하나뿐(config 파싱용)이고, 이것도 `uv pip install pyyaml`이면 끝입니다. 별도 프로젝트(RAG 파이프라인, 클라이언트 앱 등)를 개발할 때는 `uv venv` + `uv pip`으로 가상환경을 관리하는 걸 권장합니다.
 
 ## 빠른 시작
 
