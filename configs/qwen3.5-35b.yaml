@@ -18,6 +18,7 @@ vllm:
   max_model_len: 131072            # GPTQ-Int4: 128K 가능 / BF16: 32768로 줄일 것
   gpu_memory_utilization: 0.85
   dtype: "auto"
+  quantization: "moe_wna16"
 
   # Reasoning (Qwen3.5 전용 parser)
   reasoning_parser: "qwen3"
@@ -37,4 +38,6 @@ vllm:
 
   env:
     VLLM_ALLOW_LONG_MAX_MODEL_LEN: "1"
-  extra_args: []
+  extra_args:
+    - "--max-num-batched-tokens"
+    - "2096"

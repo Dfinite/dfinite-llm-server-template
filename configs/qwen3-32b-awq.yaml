@@ -15,7 +15,7 @@ vllm:
   dtype: "auto"
 
   # Reasoning
-  reasoning_parser: "deepseek_r1"
+  reasoning_parser: "qwen3"
 
   # Tool calling
   enable_auto_tool_choice: true

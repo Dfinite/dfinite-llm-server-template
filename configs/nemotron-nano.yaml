@@ -1,6 +1,9 @@
-# Nemotron-3-Nano-30B — NVIDIA MoE 모델
-# 30B total / 3B active — 빠른 추론, reasoning ON/OFF 토글 가능
+# Nemotron-3-Nano-30B — NVIDIA Mamba2-Transformer Hybrid MoE 모델
+# 30B total / 3.5B active — 빠른 추론, reasoning ON/OFF 토글 가능
 # A6000 48GB × 2 (tp=2): BF16 ~60GB → 가동 가능
+#
+# ⚠️ reasoning parser 사용 시 플러그인 파일 필요:
+#   wget https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16/resolve/main/nano_v3_reasoning_parser.py
 
 model:
   name: "nemotron-nano"
@@ -14,18 +17,18 @@ vllm:
   gpu_memory_utilization: 0.85
   dtype: "auto"
 
-  # Reasoning (Nemotron 전용 parser — vLLM 지원 확인 필요)
-  # vLLM에서 nano_v3 미지원 시 deepseek_r1 사용
-  reasoning_parser: "deepseek_r1"
+  # Reasoning (Nemotron 전용 plugin parser)
+  reasoning_parser: "nano_v3"
 
   # Tool calling
   enable_auto_tool_choice: true
-  tool_call_parser: "hermes"
+  tool_call_parser: "qwen3_coder"
 
   # Performance
   trust_remote_code: true
   enforce_eager: false
-  enable_prefix_caching: true
 
   env: {}
-  extra_args: []
+  extra_args:
+    - "--reasoning-parser-plugin"
+    - "nano_v3_reasoning_parser.py"
