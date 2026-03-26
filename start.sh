@@ -134,7 +134,7 @@ append_reranker_defaults() {
     local env_file="$1"
     # reranker 기본값이 없으면 추가
     grep -q "^RERANKER_MODEL=" "$env_file" 2>/dev/null || echo "RERANKER_MODEL=BAAI/bge-reranker-v2-m3" >> "$env_file"
-    grep -q "^RERANKER_PORT=" "$env_file" 2>/dev/null || echo "RERANKER_PORT=8001" >> "$env_file"
+    grep -q "^RERANKER_PORT=" "$env_file" 2>/dev/null || echo "RERANKER_PORT=10072" >> "$env_file"
     grep -q "^RERANKER_TP=" "$env_file" 2>/dev/null || echo "RERANKER_TP=1" >> "$env_file"
     grep -q "^RERANKER_GPU_UTIL=" "$env_file" 2>/dev/null || echo "RERANKER_GPU_UTIL=0.05" >> "$env_file"
     grep -q "^RERANKER_GPU=" "$env_file" 2>/dev/null || echo "RERANKER_GPU=all" >> "$env_file"
@@ -209,7 +209,7 @@ main() {
         # 최소 .env 생성 (reranker만 필요한 변수)
         if [[ ! -f "$ENV_FILE" ]]; then
             echo "MODEL_NAME=none" > "$ENV_FILE"
-            echo "HOST_PORT=8000" >> "$ENV_FILE"
+            echo "HOST_PORT=10071" >> "$ENV_FILE"
             echo 'VLLM_CMD_ARGS=--help' >> "$ENV_FILE"
         fi
 
@@ -223,8 +223,8 @@ main() {
         docker compose --env-file "$ENV_FILE" up -d reranker-women
 
         echo ""
-        wait_for_service "Reranker" "8001" 180
-        echo -e "${GREEN}  Reranker API: http://localhost:8001/v1/score${NC}"
+        wait_for_service "Reranker" "10072" 180
+        echo -e "${GREEN}  Reranker API: http://localhost:10072/v1/score${NC}"
         echo ""
         return 0
     fi
@@ -290,7 +290,7 @@ main() {
     echo -e "${BLUE}  vLLM Server Starting: ${model_name}${NC}"
     echo -e "${BLUE}  LLM Port: ${port}${NC}"
     [[ "$with_reranker" == true ]] && \
-    echo -e "${BLUE}  Reranker Port: 8001${NC}"
+    echo -e "${BLUE}  Reranker Port: 10072${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
     echo ""
 
@@ -311,7 +311,7 @@ main() {
 
         # Reranker 준비 대기
         if [[ "$with_reranker" == true ]]; then
-            wait_for_service "Reranker" "8001" 180
+            wait_for_service "Reranker" "10072" 180
         fi
 
         # 결과 출력
@@ -322,8 +322,8 @@ main() {
         echo -e "${GREEN}  │  LLM Models:   http://localhost:${port}/v1/models   │${NC}"
         if [[ "$with_reranker" == true ]]; then
         echo -e "${GREEN}  │  ──────────────────────────────────────────────  │${NC}"
-        echo -e "${GREEN}  │  Reranker API:  http://localhost:8001/v1/score   │${NC}"
-        echo -e "${GREEN}  │  Reranker Health: http://localhost:8001/health   │${NC}"
+        echo -e "${GREEN}  │  Reranker API:  http://localhost:10072/v1/score  │${NC}"
+        echo -e "${GREEN}  │  Reranker Health: http://localhost:10072/health  │${NC}"
         fi
         echo -e "${GREEN}  └──────────────────────────────────────────────────┘${NC}"
         echo ""

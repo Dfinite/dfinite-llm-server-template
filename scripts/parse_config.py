@@ -23,7 +23,7 @@ def parse_config(config_path: str) -> dict:
     cmd_parts = [
         "--model", model["path"],
         "--host", "0.0.0.0",
-        "--port", "8000",
+        "--port", str(vllm.get("port", 10071)),
     ]
 
     # 핵심 파라미터
@@ -64,7 +64,7 @@ def parse_config(config_path: str) -> dict:
     env = {
         "MODEL_NAME": model.get("name", "default"),
         "MODEL_PATH": model["path"],
-        "HOST_PORT": str(vllm.get("port", 8000)),
+        "HOST_PORT": str(vllm.get("port", 10071)),
         "VLLM_CMD_ARGS": " ".join(cmd_parts),
     }
 

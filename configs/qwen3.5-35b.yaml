@@ -13,7 +13,7 @@ model:
   description: "Qwen3.5 35B MoE — 멀티모달/에이전트 최적화, thinking 모드 지원"
 
 vllm:
-  port: 8000
+  port: 10071
   tensor_parallel_size: 2
   max_model_len: 131072            # GPTQ-Int4: 128K 가능 / BF16: 32768로 줄일 것
   gpu_memory_utilization: 0.85

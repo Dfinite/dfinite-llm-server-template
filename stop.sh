@@ -57,13 +57,13 @@ status() {
     cd "$SCRIPT_DIR"
 
     # .env에서 정보 읽기
-    local llm_port="8000"
-    local reranker_port="8001"
+    local llm_port="10071"
+    local reranker_port="10072"
     local model_name="unknown"
     if [[ -f "${SCRIPT_DIR}/.env" ]]; then
-        llm_port=$(grep "^HOST_PORT=" "${SCRIPT_DIR}/.env" | cut -d= -f2 | tr -d '"' || echo "8000")
+        llm_port=$(grep "^HOST_PORT=" "${SCRIPT_DIR}/.env" | cut -d= -f2 | tr -d '"' || echo "10071")
         model_name=$(grep "^MODEL_NAME=" "${SCRIPT_DIR}/.env" | cut -d= -f2 | tr -d '"' || echo "unknown")
-        reranker_port=$(grep "^RERANKER_PORT=" "${SCRIPT_DIR}/.env" | cut -d= -f2 | tr -d '"' || echo "8001")
+        reranker_port=$(grep "^RERANKER_PORT=" "${SCRIPT_DIR}/.env" | cut -d= -f2 | tr -d '"' || echo "10072")
     fi
 
     # ── LLM 상태 ──

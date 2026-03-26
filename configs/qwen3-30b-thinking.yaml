@@ -8,7 +8,7 @@ model:
   description: "Qwen3 30B MoE Thinking — always-on reasoning"
 
 vllm:
-  port: 8000
+  port: 10071
   tensor_parallel_size: 2
   max_model_len: 32768             # 256K 가능하나 VRAM 고려 32K 기본
   gpu_memory_utilization: 0.85

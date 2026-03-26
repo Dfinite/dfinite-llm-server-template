@@ -16,12 +16,12 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 # .env에서 읽기
-LLM_PORT=8000
-RERANKER_PORT=8001
+LLM_PORT=10071
+RERANKER_PORT=10072
 MODEL_NAME="unknown"
 if [[ -f "$ENV_FILE" ]]; then
-    LLM_PORT=$(grep "^HOST_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"' || echo "8000")
-    RERANKER_PORT=$(grep "^RERANKER_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"' || echo "8001")
+    LLM_PORT=$(grep "^HOST_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"' || echo "10071")
+    RERANKER_PORT=$(grep "^RERANKER_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"' || echo "10072")
     MODEL_NAME=$(grep "^MODEL_NAME=" "$ENV_FILE" | cut -d= -f2 | tr -d '"' || echo "unknown")
 fi
 

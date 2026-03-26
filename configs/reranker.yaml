@@ -9,8 +9,8 @@
 #   또는: ./start.sh <llm_model> --with-reranker
 #
 # API:
-#   POST http://localhost:8001/v1/score
-#   POST http://localhost:8001/score  (vLLM shortcut)
+#   POST http://localhost:10072/v1/score
+#   POST http://localhost:10072/score  (vLLM shortcut)
 # ═══════════════════════════════════════════════════════════════
 
 model:
@@ -19,7 +19,7 @@ model:
   description: "BGE Reranker v2 M3 — 100+ 언어, 568M params, Apache 2.0"
 
 vllm:
-  port: 8001
+  port: 10072
   task: "score"
   tensor_parallel_size: 1          # 568M → 단일 GPU 충분
   gpu_memory_utilization: 0.3      # LLM과 GPU 공유이므로 낮게

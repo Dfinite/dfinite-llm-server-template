@@ -9,7 +9,7 @@ model:
   description: "Qwen3.5 27B Dense — 코딩/추론 강점, Coder-Next 대체"
 
 vllm:
-  port: 8000
+  port: 10071
   tensor_parallel_size: 2
   max_model_len: 32768
   gpu_memory_utilization: 0.85
