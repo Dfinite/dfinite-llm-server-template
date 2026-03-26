@@ -63,9 +63,9 @@ ${CYAN}예시:${NC}
     $0 qwen3.5-35b --tag v0.8.4             # 특정 vLLM 버전
 
 ${CYAN}서비스 개별 관리:${NC}
-    docker compose stop vllm                 # LLM만 중지 (reranker 유지)
-    docker compose stop reranker             # Reranker만 중지
-    docker compose logs -f reranker          # Reranker 로그
+    docker compose stop qwen-demo             # LLM만 중지 (reranker 유지)
+    docker compose stop reranker-women       # Reranker만 중지
+    docker compose logs -f reranker-women    # Reranker 로그
 
 ${CYAN}사용 가능한 LLM 모델:${NC}
 $(ls -1 "${CONFIG_DIR}"/*.yaml 2>/dev/null | grep -v reranker | xargs -I {} basename {} .yaml | sed 's/^/    /' || echo "    (설정 파일 없음)")
@@ -109,7 +109,7 @@ print(cfg.get('model', {}).get('path', ''))
 
 # ── LLM 컨테이너만 확인/교체 ──
 check_existing_llm() {
-    local running=$(docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" ps -q vllm 2>/dev/null)
+    local running=$(docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" ps -q qwen-demo 2>/dev/null)
     if [[ -n "$running" ]]; then
         local state=$(docker inspect --format '{{.State.Status}}' $running 2>/dev/null || echo "unknown")
         if [[ "$state" == "running" ]]; then
@@ -119,8 +119,8 @@ check_existing_llm() {
             read -p "  LLM 컨테이너를 교체할까요? (Reranker는 유지됩니다) (y/N): " confirm
             if [[ "$confirm" =~ ^[yY]$ ]]; then
                 log_info "LLM 컨테이너 종료중..."
-                docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" stop vllm
-                docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" rm -f vllm
+                docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" stop qwen-demo
+                docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" rm -f qwen-demo
             else
                 log_info "취소되었습니다."
                 exit 0
@@ -220,7 +220,7 @@ main() {
         append_reranker_defaults "$ENV_FILE"
 
         cd "$SCRIPT_DIR"
-        docker compose --env-file "$ENV_FILE" up -d reranker
+        docker compose --env-file "$ENV_FILE" up -d reranker-women
 
         echo ""
         wait_for_service "Reranker" "8001" 180
@@ -278,9 +278,9 @@ main() {
     append_reranker_defaults "$ENV_FILE"
 
     # ── 시작할 서비스 결정 ──
-    local services="vllm"
+    local services="qwen-demo"
     if [[ "$with_reranker" == true ]]; then
-        services="vllm reranker"
+        services="qwen-demo reranker-women"
     fi
 
     local port=$(grep "^HOST_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"')
