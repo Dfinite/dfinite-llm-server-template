@@ -1,0 +1,40 @@
+# Qwen3.5-35B-A3B — 최신 Qwen3.5 시리즈 (2026.02 출시)
+# MoE 35B total / 3B active — 빠른 추론 + 강력한 성능
+# A6000 48GB × 2 (tp=2) 기준 GPTQ-Int4 권장
+#
+# ⚠️ BF16 사용 시 ~70GB VRAM → max_model_len 줄여야 함
+#    GPTQ-Int4 사용 시 ~20GB → 넉넉한 context 가능
+
+model:
+  name: "qwen3.5-35b"
+  # GPTQ-Int4 (권장: A6000 환경)
+  path: "Qwen/Qwen3.5-35B-A3B-GPTQ-Int4"
+  # BF16 원본 사용 시: "Qwen/Qwen3.5-35B-A3B"
+  description: "Qwen3.5 35B MoE — 멀티모달/에이전트 최적화, thinking 모드 지원"
+
+vllm:
+  port: 8000
+  tensor_parallel_size: 2
+  max_model_len: 131072            # GPTQ-Int4: 128K 가능 / BF16: 32768로 줄일 것
+  gpu_memory_utilization: 0.85
+  dtype: "auto"
+
+  # Reasoning (Qwen3.5 전용 parser)
+  reasoning_parser: "qwen3"
+
+  # Tool calling
+  enable_auto_tool_choice: true
+  tool_call_parser: "qwen3_coder"
+
+  # Performance
+  trust_remote_code: true
+  enforce_eager: false
+  enable_prefix_caching: true
+
+  # Qwen3.5 MoE 전용: language-model-only (비전 인코더 스킵)
+  # 텍스트 전용으로 사용할 경우 메모리 절약
+  # extra_args: ["--language-model-only"]
+
+  env:
+    VLLM_ALLOW_LONG_MAX_MODEL_LEN: "1"
+  extra_args: []

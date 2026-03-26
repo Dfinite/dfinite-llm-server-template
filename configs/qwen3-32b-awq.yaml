@@ -1,0 +1,34 @@
+# Qwen3-32B-AWQ — 기존 운영 모델
+# A6000 48GB × 2 (tp=2) 또는 단일 GPU에서도 가동 가능
+# AWQ 4-bit 양자화로 ~18GB VRAM, 넉넉한 KV cache 확보
+
+model:
+  name: "qwen3-32b-awq"
+  path: "Qwen/Qwen3-32B-AWQ"
+  description: "Qwen3 32B AWQ 양자화 모델 — 범용 추론/코딩"
+
+vllm:
+  port: 8000
+  tensor_parallel_size: 2
+  max_model_len: 32768
+  gpu_memory_utilization: 0.80
+  dtype: "auto"
+
+  # Reasoning
+  reasoning_parser: "deepseek_r1"
+
+  # Tool calling
+  enable_auto_tool_choice: true
+  tool_call_parser: "hermes"
+
+  # Performance
+  trust_remote_code: true
+  enforce_eager: false
+  enable_prefix_caching: true
+
+  # Logits processor (기존 설정 유지)
+  logits_processor_pattern: "logits_processor_zoo.vllm"
+
+  # 환경변수
+  env: {}
+  extra_args: []

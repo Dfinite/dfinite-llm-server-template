@@ -1,0 +1,31 @@
+# Qwen3-30B-A3B-Thinking — Qwen3 시리즈 Thinking 모델
+# MoE 30B total / 3B active — reasoning 특화
+# A6000 48GB × 2 (tp=2): BF16 ~60GB → 가동 가능
+
+model:
+  name: "qwen3-30b-thinking"
+  path: "Qwen/Qwen3-30B-A3B-Thinking-2507"
+  description: "Qwen3 30B MoE Thinking — always-on reasoning"
+
+vllm:
+  port: 8000
+  tensor_parallel_size: 2
+  max_model_len: 32768             # 256K 가능하나 VRAM 고려 32K 기본
+  gpu_memory_utilization: 0.85
+  dtype: "auto"
+
+  # Reasoning
+  reasoning_parser: "deepseek_r1"
+
+  # Tool calling
+  enable_auto_tool_choice: true
+  tool_call_parser: "hermes"
+
+  # Performance
+  trust_remote_code: true
+  enforce_eager: false
+  enable_prefix_caching: true
+
+  env:
+    VLLM_ALLOW_LONG_MAX_MODEL_LEN: "1"
+  extra_args: []

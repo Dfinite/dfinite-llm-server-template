@@ -1,0 +1,32 @@
+# Qwen3.5-27B — Dense 27B 모델 (2026.03 출시)
+# Qwen3-Coder-Next-80B 대체 추천 (A6000 2장에 80B는 불가)
+# Dense 모델이라 MoE 대비 일관된 성능, 코딩/추론 강점
+# A6000 48GB × 2 (tp=2): BF16 ~54GB → 충분
+
+model:
+  name: "qwen3.5-27b"
+  path: "Qwen/Qwen3.5-27B"
+  description: "Qwen3.5 27B Dense — 코딩/추론 강점, Coder-Next 대체"
+
+vllm:
+  port: 8000
+  tensor_parallel_size: 2
+  max_model_len: 32768
+  gpu_memory_utilization: 0.85
+  dtype: "auto"
+
+  # Reasoning
+  reasoning_parser: "qwen3"
+
+  # Tool calling
+  enable_auto_tool_choice: true
+  tool_call_parser: "qwen3_coder"
+
+  # Performance
+  trust_remote_code: true
+  enforce_eager: false
+  enable_prefix_caching: true
+
+  env:
+    VLLM_ALLOW_LONG_MAX_MODEL_LEN: "1"
+  extra_args: []

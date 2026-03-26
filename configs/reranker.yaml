@@ -1,0 +1,32 @@
+# Reranker 설정 (BAAI/bge-reranker-v2-m3)
+# ═══════════════════════════════════════════════════════════════
+# vLLM --task score 모드로 서빙
+# 568M 파라미터 → ~1.1GB VRAM (FP16)
+# LLM과 동일 GPU에서 동시 실행 가능
+#
+# 사용법:
+#   docker compose --profile reranker up -d reranker
+#   또는: ./start.sh <llm_model> --with-reranker
+#
+# API:
+#   POST http://localhost:8001/v1/score
+#   POST http://localhost:8001/score  (vLLM shortcut)
+# ═══════════════════════════════════════════════════════════════
+
+model:
+  name: "bge-reranker-v2-m3"
+  path: "BAAI/bge-reranker-v2-m3"
+  description: "BGE Reranker v2 M3 — 100+ 언어, 568M params, Apache 2.0"
+
+vllm:
+  port: 8001
+  task: "score"
+  tensor_parallel_size: 1          # 568M → 단일 GPU 충분
+  gpu_memory_utilization: 0.3      # LLM과 GPU 공유이므로 낮게
+  dtype: "auto"
+  trust_remote_code: true
+
+# 대체 모델 후보 (참고용):
+#   - BAAI/bge-reranker-v2-gemma (2B, 더 높은 성능)
+#   - BAAI/bge-reranker-v2.5-gemma2-lightweight (9B, 최고 성능)
+#   - jinaai/jina-reranker-v3 (0.6B, 131K context, CC BY-NC 4.0 주의)
