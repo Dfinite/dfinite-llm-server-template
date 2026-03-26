@@ -5,16 +5,6 @@
 # LLM+Reranker: ./start.sh qwen3-32b-awq --with-reranker
 # Reranker만:   docker compose up -d reranker-women
 #
-# LLM 교체 시 reranker는 영향 없음:
-#   docker compose stop qwen-demo && docker compose rm -f qwen-demo
-#   ./start.sh qwen3.5-35b
-#
-# ── 왜 서로 독립적인가? ──
-# Docker Compose의 각 서비스는 별도 컨테이너(= 별도 프로세스 공간)
-# `docker compose stop qwen-demo`은 qwen-demo 컨테이너만 종료
-# reranker-women 컨테이너는 Docker 데몬이 독립적으로 유지
-# ⚠️ `docker compose down`은 전체 프로젝트를 내리므로 주의
-#
 # ── GPU 전략 (A6000 48GB × 2) ──
 # LLM:      tp=2, 양쪽 GPU → gpu_memory_utilization으로 비율 제한
 # Reranker: tp=1, 같은 GPU에서 남은 VRAM 활용 (568M → ~1.1GB)
@@ -58,7 +48,7 @@ services:
         max-size: "50m"
         max-file: "3"
 
-  # ─── Reranker 서비스 (LLM과 독립) ──────────────────────────
+  # ─── Reranker 서비스 ──────────────────────────────────────
   reranker-women:
     image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.17.1}
     container_name: vllm-reranker
