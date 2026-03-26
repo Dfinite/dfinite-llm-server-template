@@ -1,0 +1,100 @@
+# ═══════════════════════════════════════════════════════════════
+# vLLM API Server — Docker Compose
+# ═══════════════════════════════════════════════════════════════
+# LLM만:        ./start.sh qwen3-32b-awq
+# LLM+Reranker: ./start.sh qwen3-32b-awq --with-reranker
+# Reranker만:   docker compose up -d reranker
+#
+# LLM 교체 시 reranker는 영향 없음:
+#   docker compose stop vllm && docker compose rm -f vllm
+#   ./start.sh qwen3.5-35b
+#
+# ── 왜 서로 독립적인가? ──
+# Docker Compose의 각 서비스는 별도 컨테이너(= 별도 프로세스 공간)
+# `docker compose stop vllm`은 vllm 컨테이너만 종료
+# reranker 컨테이너는 Docker 데몬이 독립적으로 유지
+# ⚠️ `docker compose down`은 전체 프로젝트를 내리므로 주의
+#
+# ── GPU 전략 (A6000 48GB × 2) ──
+# LLM:      tp=2, 양쪽 GPU → gpu_memory_utilization으로 비율 제한
+# Reranker: tp=1, 같은 GPU에서 남은 VRAM 활용 (568M → ~1.1GB)
+# ═══════════════════════════════════════════════════════════════
+
+services:
+
+  # ─── LLM 서비스 (모델 교체 가능) ───────────────────────────
+  vllm:
+    image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.17.1}
+    container_name: vllm-${MODEL_NAME:-default}
+    ports:
+      - "${HOST_PORT:-8000}:8000"
+    volumes:
+      - ${HF_CACHE:-~/.cache/huggingface}:/root/.cache/huggingface
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
+      - HF_TOKEN=${HF_TOKEN:-}
+      - NCCL_IB_DISABLE=${NCCL_IB_DISABLE:-1}
+      - NCCL_P2P_DISABLE=${NCCL_P2P_DISABLE:-0}
+      - VLLM_ALLOW_LONG_MAX_MODEL_LEN=${VLLM_ALLOW_LONG_MAX_MODEL_LEN:-0}
+    ipc: host
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: ${VLLM_CMD_ARGS}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # ─── Reranker 서비스 (LLM과 독립) ──────────────────────────
+  reranker:
+    image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.17.1}
+    container_name: vllm-reranker
+    ports:
+      - "${RERANKER_PORT:-8001}:8001"
+    volumes:
+      - ${HF_CACHE:-~/.cache/huggingface}:/root/.cache/huggingface
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=${RERANKER_GPU:-all}
+      - HF_TOKEN=${HF_TOKEN:-}
+    ipc: host
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: >-
+      --model ${RERANKER_MODEL:-BAAI/bge-reranker-v2-m3}
+      --host 0.0.0.0
+      --port 8001
+      --task score
+      --tensor-parallel-size ${RERANKER_TP:-1}
+      --gpu-memory-utilization ${RERANKER_GPU_UTIL:-0.05}
+      --dtype auto
+      --trust-remote-code
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
