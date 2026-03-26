@@ -1,4 +1,4 @@
-# Qwen3.5-27B — Dense 27B 모델 (2026.03 출시)
+# Qwen3.5-27B — Dense 27B 모델
 # Qwen3-Coder-Next-80B 대체 추천 (A6000 2장에 80B는 불가)
 # Dense 모델이라 MoE 대비 일관된 성능, 코딩/추론 강점
 # A6000 48GB × 2 (tp=2): BF16 ~54GB → 충분

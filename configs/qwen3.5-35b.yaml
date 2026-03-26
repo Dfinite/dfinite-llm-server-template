@@ -1,4 +1,4 @@
-# Qwen3.5-35B-A3B — 최신 Qwen3.5 시리즈 (2026.02 출시)
+# Qwen3.5-35B-A3B — Qwen3.5 시리즈
 # MoE 35B total / 3B active — 빠른 추론 + 강력한 성능
 # A6000 48GB × 2 (tp=2) 기준 GPTQ-Int4 권장
 #
