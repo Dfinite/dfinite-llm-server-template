@@ -41,3 +41,5 @@ vllm:
     - "3"
     - "--limit-mm-per-prompt.video"
     - "0"
+    - "--default-chat-template-kwargs.enable_thinking"
+    - "false"
