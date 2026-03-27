@@ -14,7 +14,7 @@ services:
 
   # ─── LLM 서비스 (모델 교체 가능) ───────────────────────────
   qwen-demo:
-    image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.17.1}
+    image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.18.0}
     container_name: vllm-${MODEL_NAME:-default}
     ports:
       - "${HOST_PORT:-10071}:10071"
@@ -50,7 +50,7 @@ services:
 
   # ─── Reranker 서비스 ──────────────────────────────────────
   reranker-women:
-    image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.17.1}
+    image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.18.0}
     container_name: vllm-reranker
     ports:
       - "${RERANKER_PORT:-10072}:10072"

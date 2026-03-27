@@ -1,16 +1,21 @@
-# Qwen3.5-35B-A3B — Qwen3.5 시리즈
-# MoE 35B total / 3B active — 빠른 추론 + 강력한 성능
+# Qwen3.5-35B-A3B — MoE 모델
+# ═══════════════════════════════════════════════════════════════
+# MoE 35B total / 3B active — Gated Delta Networks 아키텍처
 # A6000 48GB × 2 (tp=2) 기준 GPTQ-Int4 권장
+#
+# ⚠️ vLLM ≥ 0.18.0 필요 (qwen3_5_moe 아키텍처 + transformers 4.56.x 포함)
+#   → ./start.sh qwen3.5-35b --tag v0.18.0
 #
 # ⚠️ BF16 사용 시 ~70GB VRAM → max_model_len 줄여야 함
 #    GPTQ-Int4 사용 시 ~20GB → 넉넉한 context 가능
+# ═══════════════════════════════════════════════════════════════
 
 model:
   name: "qwen3.5-35b"
   # GPTQ-Int4 (권장: A6000 환경)
   path: "Qwen/Qwen3.5-35B-A3B-GPTQ-Int4"
   # BF16 원본 사용 시: "Qwen/Qwen3.5-35B-A3B"
-  description: "Qwen3.5 35B MoE — 멀티모달/에이전트 최적화, thinking 모드 지원"
+  description: "Qwen3.5 35B MoE — 에이전트/thinking 모드 (vLLM ≥0.18.0)"
 
 vllm:
   port: 10071
@@ -29,15 +34,10 @@ vllm:
 
   # Performance
   trust_remote_code: true
+  # Gated Delta Networks + MoE → CUDA graph 이슈 가능 — 에러 시 true로
   enforce_eager: false
   enable_prefix_caching: true
 
-  # Qwen3.5 MoE 전용: language-model-only (비전 인코더 스킵)
-  # 텍스트 전용으로 사용할 경우 메모리 절약
-  # extra_args: ["--language-model-only"]
-
   env:
     VLLM_ALLOW_LONG_MAX_MODEL_LEN: "1"
-  extra_args:
-    - "--max-num-batched-tokens"
-    - "2096"
+  extra_args: []
