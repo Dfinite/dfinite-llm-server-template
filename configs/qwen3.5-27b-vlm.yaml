@@ -37,5 +37,7 @@ vllm:
 
   # VLM 전용: 이미지 최대 3장, 비디오 비활성화 (VRAM 절약)
   extra_args:
-    - "--limit-mm-per-prompt"
-    - '{"image":3,"video":0}'
+    - "--limit-mm-per-prompt.image"
+    - "3"
+    - "--limit-mm-per-prompt.video"
+    - "0"
