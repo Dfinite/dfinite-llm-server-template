@@ -75,10 +75,10 @@ services:
               count: all
               capabilities: [gpu]
     command: >-
-      --model ${RERANKER_MODEL:-BAAI/bge-reranker-v2-m3}
+      ${RERANKER_MODEL:-BAAI/bge-reranker-v2-m3}
       --host 0.0.0.0
       --port 10072
-      --task score
+      --runner pooling
       --tensor-parallel-size ${RERANKER_TP:-1}
       --gpu-memory-utilization ${RERANKER_GPU_UTIL:-0.05}
       --dtype auto
