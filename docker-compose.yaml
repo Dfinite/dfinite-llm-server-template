@@ -13,7 +13,7 @@
 services:
 
   # ─── LLM 서비스 (모델 교체 가능) ───────────────────────────
-  qwen-demo:
+  qwen-woman:
     image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.17.1}
     container_name: vllm-${MODEL_NAME:-default}
     ports:

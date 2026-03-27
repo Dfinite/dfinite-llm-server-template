@@ -72,7 +72,7 @@ export HF_TOKEN="hf_..."
 | `llm` | LLM만 종료 (Reranker 유지) |
 | `reranker` | Reranker만 종료 (LLM 유지) |
 | `status` | 컨테이너 상태 + GPU 사용량 확인 |
-| `logs [서비스]` | 로그 보기 (`qwen-demo` / `reranker-women` / 전체) |
+| `logs [서비스]` | 로그 보기 (`qwen-woman` / `reranker-women` / 전체) |
 | `restart [서비스]` | 서비스 재시작 |
 
 ```bash
@@ -80,7 +80,7 @@ export HF_TOKEN="hf_..."
 ./stop.sh                        # 전체 종료
 ./stop.sh llm                    # LLM만 종료
 ./stop.sh status                 # 상태 확인
-./stop.sh logs qwen-demo         # LLM 로그
+./stop.sh logs qwen-woman         # LLM 로그
 ./stop.sh restart reranker-women # Reranker 재시작
 ```
 

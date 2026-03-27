@@ -32,15 +32,15 @@ ${CYAN}명령어:${NC}
     llm             LLM 서비스만 종료 (reranker 유지)
     reranker        Reranker 서비스만 종료 (LLM 유지)
     status          현재 상태 확인
-    logs [서비스]   로그 보기 (qwen-demo / reranker-women / 미지정=전체)
-    restart [서비스] 재시작 (qwen-demo / reranker-women / 미지정=전체)
+    logs [서비스]   로그 보기 (qwen-woman / reranker-women / 미지정=전체)
+    restart [서비스] 재시작 (qwen-woman / reranker-women / 미지정=전체)
 
 ${CYAN}예시:${NC}
     $0                  # 전체 종료
     $0 llm              # LLM만 종료 (reranker-women 유지)
     $0 reranker         # Reranker만 종료
     $0 status           # 상태 확인
-    $0 logs qwen-demo        # LLM 로그
+    $0 logs qwen-woman        # LLM 로그
     $0 logs reranker-women   # Reranker 로그
     $0 restart reranker-women # Reranker만 재시작
 
@@ -68,7 +68,7 @@ status() {
 
     # ── LLM 상태 ──
     echo -e "  ${CYAN}[LLM]${NC}"
-    local llm_running=$(docker compose ps -q qwen-demo 2>/dev/null)
+    local llm_running=$(docker compose ps -q qwen-woman 2>/dev/null)
     if [[ -n "$llm_running" ]] && docker inspect --format '{{.State.Status}}' $llm_running 2>/dev/null | grep -q "running"; then
         echo -e "  ${GREEN}●${NC} Container: running"
         echo -e "    Model: ${model_name}"
@@ -155,8 +155,8 @@ main() {
             ;;
         llm)
             log_info "LLM 서비스 종료 (reranker-women은 유지)..."
-            docker compose stop qwen-demo
-            docker compose rm -f qwen-demo
+            docker compose stop qwen-woman
+            docker compose rm -f qwen-woman
             log_info "LLM 종료 완료"
             ;;
         reranker)

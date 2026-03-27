@@ -111,7 +111,7 @@ ${CYAN}예시:${NC}
     $0 qwen3.5-35b --port 8002              # 포트 변경
 
 ${CYAN}서비스 개별 관리:${NC}
-    docker compose stop qwen-demo            # LLM만 중지 (reranker 유지)
+    docker compose stop qwen-woman            # LLM만 중지 (reranker 유지)
     docker compose stop reranker-women       # Reranker만 중지
     docker compose logs -f reranker-women    # Reranker 로그
 
@@ -156,7 +156,7 @@ print(cfg.get('model', {}).get('path', ''))
 
 # ── LLM 컨테이너만 확인/교체 ──
 check_existing_llm() {
-    local running=$(docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" ps -q qwen-demo 2>/dev/null)
+    local running=$(docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" ps -q qwen-woman 2>/dev/null)
     if [[ -n "$running" ]]; then
         local state=$(docker inspect --format '{{.State.Status}}' $running 2>/dev/null || echo "unknown")
         if [[ "$state" == "running" ]]; then
@@ -166,8 +166,8 @@ check_existing_llm() {
             read -p "  LLM 컨테이너를 교체할까요? (Reranker는 유지됩니다) (y/N): " confirm
             if [[ "$confirm" =~ ^[yY]$ ]]; then
                 log_info "LLM 컨테이너 종료중..."
-                docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" stop qwen-demo
-                docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" rm -f qwen-demo
+                docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" stop qwen-woman
+                docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" rm -f qwen-woman
             else
                 log_info "취소되었습니다."
                 exit 0
@@ -324,9 +324,9 @@ main() {
     check_qwen35_compat "$model_name" "$ENV_FILE"
 
     # ── 시작할 서비스 결정 ──
-    local services="qwen-demo"
+    local services="qwen-woman"
     if [[ "$with_reranker" == true ]]; then
-        services="qwen-demo reranker-women"
+        services="qwen-woman reranker-women"
     fi
 
     local port=$(grep "^HOST_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"')
