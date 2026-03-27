@@ -1,25 +1,15 @@
 # Qwen3.5-27B — 텍스트 전용 (비전 인코더 비활성화)
 # ═══════════════════════════════════════════════════════════════
-# Dense 27B — Gated Delta Networks 아키텍처 (Mamba 계열)
-# A6000 48GB × 2 (tp=2): BF16 ~54GB
-#
-# ⚠️ 버전 요구사항:
-#   - vLLM ≥ 0.17.0 (v0.16.0 미지원 확인됨)
-#   - Transformers ≥ 5.0 필수 (qwen3_5 아키텍처 인식)
-#   - Docker: nightly 또는 v0.18.0+ 권장
-#     → ./start.sh qwen3.5-27b --tag nightly
-#   - v0.17.1 이미지에서 아키텍처 미인식 시:
-#     커스텀 Dockerfile로 transformers 업그레이드 필요
-#     FROM vllm/vllm-openai:v0.17.1
-#     RUN uv pip install --system git+https://github.com/huggingface/transformers.git
-#
-# ⚠️ 이미지/비디오 입력이 필요하면 qwen3.5-27b-vlm.yaml 사용
+# Dense 27B — Gated Delta Networks 아키텍처
+# L40S 45GB × 2 (tp=2): BF16 ~54GB
+# vLLM ≥ 0.18.0 필요 (transformers 4.56.x 포함)
+# 이미지/비디오 → qwen3.5-27b-vlm.yaml 사용
 # ═══════════════════════════════════════════════════════════════
 
 model:
   name: "qwen3.5-27b"
   path: "Qwen/Qwen3.5-27B"
-  description: "Qwen3.5 27B Dense — 텍스트 전용, 코딩/추론 (vLLM ≥0.17, nightly 권장)"
+  description: "Qwen3.5 27B Dense — 텍스트 전용, 코딩/추론 (vLLM ≥0.18.0)"
 
 vllm:
   port: 8000

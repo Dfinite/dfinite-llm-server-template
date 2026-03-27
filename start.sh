@@ -37,22 +37,15 @@ check_qwen35_compat() {
     local model_name="$1"
     local env_file="$2"
 
-    # Qwen3.5 모델인지 확인
     if [[ "$model_name" != *"qwen3.5"* ]]; then
         return 0
     fi
 
-    # 현재 설정된 이미지 태그 확인
     local current_tag=$(grep "^VLLM_IMAGE_TAG=" "$env_file" 2>/dev/null | cut -d= -f2 | tr -d '"')
-    current_tag="${current_tag:-v0.17.1}"
+    current_tag="${current_tag:-v0.18.0}"
 
-    # nightly나 커스텀 빌드면 OK
-    if [[ "$current_tag" == "nightly"* ]] || [[ "$current_tag" == *"qwen3.5"* ]]; then
-        return 0
-    fi
-
-    # v0.18.0 이상이면 OK (단순 비교)
-    if [[ "$current_tag" =~ ^v?0\.1[89] ]] || [[ "$current_tag" =~ ^v?[1-9] ]]; then
+    # v0.18.0 이상이면 OK
+    if [[ "$current_tag" =~ ^v?0\.1[89] ]] || [[ "$current_tag" =~ ^v?[1-9] ]] || [[ "$current_tag" == "nightly"* ]]; then
         return 0
     fi
 
@@ -60,22 +53,13 @@ check_qwen35_compat() {
     log_warn "═══════════════════════════════════════════════════════════"
     log_warn "  Qwen3.5 모델 감지: ${model_name}"
     log_warn "  현재 이미지 태그: ${current_tag}"
-    log_warn ""
-    log_warn "  Qwen3.5는 다음이 필요합니다:"
-    log_warn "    - vLLM ≥ 0.17.0 + Transformers ≥ 5.0"
-    log_warn "    - qwen3_5_moe / qwen3_5 아키텍처 지원"
-    log_warn ""
-    log_warn "  v0.17.1 이미지에서 아키텍처 미인식 에러 발생 시:"
-    log_warn "    방법 1: --tag nightly 사용"
-    log_warn "    방법 2: 커스텀 이미지 빌드"
-    log_warn "      docker build -t vllm-qwen3.5 -f Dockerfile.qwen3.5 ."
-    log_warn "      ./start.sh ${model_name} --tag vllm-qwen3.5"
+    log_warn "  Qwen3.5는 vLLM ≥ 0.18.0 필요 (--tag v0.18.0)"
     log_warn "═══════════════════════════════════════════════════════════"
     echo ""
 
     read -p "  계속 진행할까요? (y/N): " confirm
     if [[ ! "$confirm" =~ ^[yY]$ ]]; then
-        log_info "취소됨. --tag nightly 로 다시 시도하세요."
+        log_info "취소됨. --tag v0.18.0 으로 다시 시도하세요."
         exit 0
     fi
 }
@@ -107,7 +91,7 @@ ${CYAN}예시:${NC}
     $0 qwen3-32b-awq                        # LLM만 시작
     $0 qwen3-32b-awq --with-reranker        # LLM + Reranker
     $0 --reranker-only                       # Reranker만 시작
-    $0 qwen3.5-27b-vlm --tag nightly        # Qwen3.5 (nightly 필요)
+    $0 qwen3.5-27b-vlm --tag v0.18.0        # Qwen3.5 (v0.18.0 이상)
     $0 qwen3.5-35b --port 8002              # 포트 변경
 
 ${CYAN}서비스 개별 관리:${NC}

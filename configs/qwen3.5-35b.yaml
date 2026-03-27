@@ -1,27 +1,16 @@
 # Qwen3.5-35B-A3B — MoE 모델
 # ═══════════════════════════════════════════════════════════════
 # MoE 35B total / 3B active — Gated Delta Networks 아키텍처
-# A6000 48GB × 2 (tp=2) 기준 GPTQ-Int4 권장
-#
-# ⚠️ 버전 요구사항:
-#   - vLLM ≥ 0.17.0 (v0.16.0 미지원 확인됨)
-#   - Transformers ≥ 5.0 필수 (qwen3_5_moe 아키텍처)
-#   - Docker: nightly 또는 v0.18.0+ 권장
-#     → ./start.sh qwen3.5-35b --tag nightly
-#   - v0.17.1에서 아키텍처 미인식 시:
-#     FROM vllm/vllm-openai:v0.17.1
-#     RUN uv pip install --system git+https://github.com/huggingface/transformers.git
-#
-# ⚠️ BF16 사용 시 ~70GB VRAM → max_model_len 줄여야 함
-#    GPTQ-Int4 사용 시 ~20GB → 넉넉한 context 가능
+# L40S 45GB × 2 (tp=2) 기준 GPTQ-Int4 권장
+# vLLM ≥ 0.18.0 필요 (transformers 4.56.x 포함)
+# BF16: ~70GB VRAM → max_model_len 줄여야 함
+# GPTQ-Int4: ~20GB → 넉넉한 context 가능
 # ═══════════════════════════════════════════════════════════════
 
 model:
   name: "qwen3.5-35b"
-  # GPTQ-Int4 (권장: A6000 환경)
-  path: "Qwen/Qwen3.5-35B-A3B-GPTQ-Int4"
-  # BF16 원본 사용 시: "Qwen/Qwen3.5-35B-A3B"
-  description: "Qwen3.5 35B MoE — 에이전트/thinking 모드 (vLLM ≥0.17, nightly 권장)"
+  path: "Qwen/Qwen3.5-35B-A3B-GPTQ-Int4"    # BF16: "Qwen/Qwen3.5-35B-A3B"
+  description: "Qwen3.5 35B MoE — 에이전트/thinking 모드 (vLLM ≥0.18.0)"
 
 vllm:
   port: 8000
