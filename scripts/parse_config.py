@@ -21,8 +21,9 @@ def parse_config(config_path: str) -> dict:
 
     # ── vLLM serve 명령어 인자 조립 ──
     # 내부 포트는 8000 고정 (vLLM 기본값), config의 port는 호스트 포트로 사용
+    # v0.18.0+: model은 positional argument로 전달
     cmd_parts = [
-        "--model", model["path"],
+        model["path"],
         "--host", "0.0.0.0",
         "--port", "8000",
     ]
