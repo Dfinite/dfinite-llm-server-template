@@ -2,7 +2,9 @@
 # ═══════════════════════════════════════════════════════════════
 # Qwen3.5는 네이티브 멀티모달 모델 (hybrid)
 # --language-model-only를 안 쓰면 자동으로 비전 인코더 로드
-# A6000 48GB × 2 (tp=2): BF16 ~60-65GB (비전 인코더 포함)
+# L40S 45GB × 2 (tp=2): BF16 ~60-65GB (비전 인코더 포함)
+#   → 장당 ~30-32GB 사용, 45GB 내 여유 있음
+#   → KV cache 여유가 A6000 대비 ~6GB 적으므로 context 보수적으로
 #
 # ⚠️ 버전 요구사항:
 #   - vLLM ≥ 0.17.0 (v0.16.0 미지원 확인됨)
@@ -27,13 +29,13 @@
 model:
   name: "qwen3.5-27b-vlm"
   path: "Qwen/Qwen3.5-27B"
-  description: "Qwen3.5 27B Dense VLM — 이미지 이해 + reasoning (vLLM ≥0.17, nightly 권장)"
+  description: "Qwen3.5 27B Dense VLM — 이미지 이해 + reasoning (L40S×2, nightly 권장)"
 
 vllm:
   port: 30071
   tensor_parallel_size: 2
-  max_model_len: 32768             # VLM은 이미지 토큰이 추가되므로 보수적으로
-  gpu_memory_utilization: 0.85
+  max_model_len: 16384               # L40S: A6000 대비 VRAM 적음 + 이미지 토큰 고려
+  gpu_memory_utilization: 0.90        # L40S 45GB — 빡빡하므로 0.90으로 올림
   dtype: "auto"
 
   # Reasoning
@@ -51,10 +53,9 @@ vllm:
 
   env:
     VLLM_ALLOW_LONG_MAX_MODEL_LEN: "1"
-    # 멀티모달 전처리 스레드 제한 (CPU 경합 방지)
     OMP_NUM_THREADS: "1"
 
-  # VLM 전용: 이미지 최대 5장, 비디오 비활성화 (VRAM 절약)
+  # VLM 전용: 이미지 최대 3장, 비디오 비활성화 (VRAM 절약)
   extra_args:
     - "--limit-mm-per-prompt"
-    - "image=5,video=0"
+    - "image=3,video=0"
