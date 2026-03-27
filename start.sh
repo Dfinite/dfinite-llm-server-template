@@ -252,7 +252,7 @@ main() {
 
         if [[ ! -f "$ENV_FILE" ]]; then
             echo "MODEL_NAME=none" > "$ENV_FILE"
-            echo "HOST_PORT=10071" >> "$ENV_FILE"
+            echo "HOST_PORT=8000" >> "$ENV_FILE"
             echo 'VLLM_CMD_ARGS=--help' >> "$ENV_FILE"
         fi
 

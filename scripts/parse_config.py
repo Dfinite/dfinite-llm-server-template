@@ -20,10 +20,11 @@ def parse_config(config_path: str) -> dict:
     extra_args = vllm.get("extra_args", [])
 
     # ── vLLM serve 명령어 인자 조립 ──
+    # 내부 포트는 8000 고정 (vLLM 기본값), config의 port는 호스트 포트로 사용
     cmd_parts = [
         "--model", model["path"],
         "--host", "0.0.0.0",
-        "--port", str(vllm.get("port", 10071)),
+        "--port", "8000",
     ]
 
     # 핵심 파라미터
@@ -64,7 +65,7 @@ def parse_config(config_path: str) -> dict:
     env = {
         "MODEL_NAME": model.get("name", "default"),
         "MODEL_PATH": model["path"],
-        "HOST_PORT": str(vllm.get("port", 10071)),
+        "HOST_PORT": str(vllm.get("port", 8000)),
         "VLLM_CMD_ARGS": " ".join(cmd_parts),
     }
 

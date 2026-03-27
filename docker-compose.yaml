@@ -17,7 +17,7 @@ services:
     image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.17.1}
     container_name: vllm-${MODEL_NAME:-default}
     ports:
-      - "${HOST_PORT:-10071}:10071"
+      - "${HOST_PORT:-8000}:8000"
     volumes:
       - ${HF_CACHE:-~/.cache/huggingface}:/root/.cache/huggingface
     environment:
@@ -29,7 +29,7 @@ services:
     ipc: host
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:10071/health || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

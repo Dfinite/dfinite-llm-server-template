@@ -30,7 +30,7 @@ model:
   description: "Qwen3.5 27B Dense VLM — 이미지 이해 + reasoning (vLLM ≥0.17, nightly 권장)"
 
 vllm:
-  port: 8000
+  port: 30071
   tensor_parallel_size: 2
   max_model_len: 32768             # VLM은 이미지 토큰이 추가되므로 보수적으로
   gpu_memory_utilization: 0.85
