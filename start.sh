@@ -186,7 +186,17 @@ wait_for_service() {
             return 0
         fi
 
-        if ! docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" ps 2>/dev/null | grep -q "running"; then
+        local container_status=$(docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" ps --format json 2>/dev/null | python3 -c "
+import sys, json
+for line in sys.stdin:
+    try:
+        c = json.loads(line)
+        if c.get('State') == 'exited' or c.get('State') == 'dead':
+            print('stopped')
+            break
+    except: pass
+" 2>/dev/null)
+        if [[ "$container_status" == "stopped" ]]; then
             echo ""
             log_error "${name} 컨테이너가 시작 중 종료됨"
             log_error "로그 확인: docker compose logs --tail 50"
