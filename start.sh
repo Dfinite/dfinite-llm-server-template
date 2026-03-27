@@ -32,6 +32,54 @@ ensure_pyyaml() {
     pip3 install --user --quiet pyyaml 2>/dev/null || pip install --quiet pyyaml
 }
 
+# ── Qwen3.5 버전 호환성 체크 ──
+check_qwen35_compat() {
+    local model_name="$1"
+    local env_file="$2"
+
+    # Qwen3.5 모델인지 확인
+    if [[ "$model_name" != *"qwen3.5"* ]]; then
+        return 0
+    fi
+
+    # 현재 설정된 이미지 태그 확인
+    local current_tag=$(grep "^VLLM_IMAGE_TAG=" "$env_file" 2>/dev/null | cut -d= -f2 | tr -d '"')
+    current_tag="${current_tag:-v0.17.1}"
+
+    # nightly나 커스텀 빌드면 OK
+    if [[ "$current_tag" == "nightly"* ]] || [[ "$current_tag" == *"qwen3.5"* ]]; then
+        return 0
+    fi
+
+    # v0.18.0 이상이면 OK (단순 비교)
+    if [[ "$current_tag" =~ ^v?0\.1[89] ]] || [[ "$current_tag" =~ ^v?[1-9] ]]; then
+        return 0
+    fi
+
+    echo ""
+    log_warn "═══════════════════════════════════════════════════════════"
+    log_warn "  Qwen3.5 모델 감지: ${model_name}"
+    log_warn "  현재 이미지 태그: ${current_tag}"
+    log_warn ""
+    log_warn "  Qwen3.5는 다음이 필요합니다:"
+    log_warn "    - vLLM ≥ 0.17.0 + Transformers ≥ 5.0"
+    log_warn "    - qwen3_5_moe / qwen3_5 아키텍처 지원"
+    log_warn ""
+    log_warn "  v0.17.1 이미지에서 아키텍처 미인식 에러 발생 시:"
+    log_warn "    방법 1: --tag nightly 사용"
+    log_warn "    방법 2: 커스텀 이미지 빌드"
+    log_warn "      docker build -t vllm-qwen3.5 -f Dockerfile.qwen3.5 ."
+    log_warn "      ./start.sh ${model_name} --tag vllm-qwen3.5"
+    log_warn "═══════════════════════════════════════════════════════════"
+    echo ""
+
+    read -p "  계속 진행할까요? (y/N): " confirm
+    if [[ ! "$confirm" =~ ^[yY]$ ]]; then
+        log_info "취소됨. --tag nightly 로 다시 시도하세요."
+        exit 0
+    fi
+}
+
 # ── 도움말 ──
 show_help() {
     cat << EOF
@@ -51,7 +99,7 @@ ${CYAN}명령어:${NC}
 ${CYAN}옵션:${NC}
     --with-reranker     LLM + Reranker 동시 시작
     --port PORT         LLM 호스트 포트 오버라이드
-    --tag TAG           vLLM Docker 이미지 태그 (기본: latest)
+    --tag TAG           vLLM Docker 이미지 태그 (기본: v0.17.1)
     --gpu DEVICES       GPU 디바이스 지정 (예: 0,1)
     --follow, -f        로그 따라가기 (foreground)
 
@@ -59,11 +107,11 @@ ${CYAN}예시:${NC}
     $0 qwen3-32b-awq                        # LLM만 시작
     $0 qwen3-32b-awq --with-reranker        # LLM + Reranker
     $0 --reranker-only                       # Reranker만 시작
+    $0 qwen3.5-27b-vlm --tag nightly        # Qwen3.5 (nightly 필요)
     $0 qwen3.5-35b --port 8002              # 포트 변경
-    $0 qwen3.5-35b --tag v0.8.4             # 특정 vLLM 버전
 
 ${CYAN}서비스 개별 관리:${NC}
-    docker compose stop qwen-demo             # LLM만 중지 (reranker 유지)
+    docker compose stop qwen-demo            # LLM만 중지 (reranker 유지)
     docker compose stop reranker-women       # Reranker만 중지
     docker compose logs -f reranker-women    # Reranker 로그
 
@@ -82,7 +130,6 @@ list_models() {
     for config_file in "${CONFIG_DIR}"/*.yaml; do
         if [[ -f "$config_file" ]]; then
             local name=$(basename "$config_file" .yaml)
-            # reranker config는 스킵
             [[ "$name" == "reranker" ]] && continue
             local desc=$(python3 -c "
 import yaml
@@ -132,7 +179,6 @@ check_existing_llm() {
 # ── .env에 reranker 기본값 추가 ──
 append_reranker_defaults() {
     local env_file="$1"
-    # reranker 기본값이 없으면 추가
     grep -q "^RERANKER_MODEL=" "$env_file" 2>/dev/null || echo "RERANKER_MODEL=BAAI/bge-reranker-v2-m3" >> "$env_file"
     grep -q "^RERANKER_PORT=" "$env_file" 2>/dev/null || echo "RERANKER_PORT=10072" >> "$env_file"
     grep -q "^RERANKER_TP=" "$env_file" 2>/dev/null || echo "RERANKER_TP=1" >> "$env_file"
@@ -156,12 +202,10 @@ wait_for_service() {
             return 0
         fi
 
-        # 컨테이너 상태 확인
-        local svc_name=$(echo "$name" | tr '[:upper:]' '[:lower:]')
         if ! docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" ps 2>/dev/null | grep -q "running"; then
             echo ""
             log_error "${name} 컨테이너가 시작 중 종료됨"
-            log_error "로그 확인: docker compose logs --tail 50 ${svc_name}"
+            log_error "로그 확인: docker compose logs --tail 50"
             return 1
         fi
 
@@ -206,7 +250,6 @@ main() {
         ensure_pyyaml
         log_info "Reranker 서비스만 시작합니다"
 
-        # 최소 .env 생성 (reranker만 필요한 변수)
         if [[ ! -f "$ENV_FILE" ]]; then
             echo "MODEL_NAME=none" > "$ENV_FILE"
             echo "HOST_PORT=10071" >> "$ENV_FILE"
@@ -244,7 +287,7 @@ main() {
 
     ensure_pyyaml
 
-    # 기존 LLM 컨테이너 확인 (reranker는 건드리지 않음)
+    # 기존 LLM 컨테이너 확인
     check_existing_llm
 
     # ── Config → .env 변환 ──
@@ -274,8 +317,11 @@ main() {
     local hf_cache="${HF_HOME:-${HOME}/.cache/huggingface}"
     echo "HF_CACHE=${hf_cache}" >> "$ENV_FILE"
 
-    # Reranker 기본값 추가 (with-reranker든 아니든 .env에는 있어야 compose가 에러 안 남)
+    # Reranker 기본값
     append_reranker_defaults "$ENV_FILE"
+
+    # ── Qwen3.5 호환성 체크 ──
+    check_qwen35_compat "$model_name" "$ENV_FILE"
 
     # ── 시작할 서비스 결정 ──
     local services="qwen-demo"
