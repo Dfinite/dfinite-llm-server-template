@@ -1,6 +1,6 @@
-# dfinite-a6000-model
+# dfinite-llm-server-template
 
-A6000 48GB x 2 환경에서 vLLM + Docker Compose 기반 모델 서빙.
+vLLM + Docker Compose 기반 LLM 서빙 템플릿.
 
 ## 디렉토리 구조
 
@@ -55,7 +55,7 @@ export HF_TOKEN="hf_..."
 ./start.sh qwen3-32b-awq --with-reranker    # LLM + Reranker
 ./start.sh --reranker-only                   # Reranker만
 ./start.sh qwen3.5-35b --port 8002          # 포트 변경
-./start.sh qwen3.5-35b --tag nightly        # nightly 이미지
+./start.sh qwen3.5-35b --tag v0.18.0        # 특정 vLLM 버전
 ```
 
 ### stop.sh

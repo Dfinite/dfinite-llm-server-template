@@ -14,7 +14,7 @@ services:
 
   # ─── LLM 서비스 (모델 교체 가능) ───────────────────────────
   qwen-demo:
-    image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.17.1}
+    image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.18.0}
     container_name: vllm-${MODEL_NAME:-default}
     ports:
       - "${HOST_PORT:-10071}:10071"
@@ -50,7 +50,7 @@ services:
 
   # ─── Reranker 서비스 ──────────────────────────────────────
   reranker-women:
-    image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.17.1}
+    image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.18.0}
     container_name: vllm-reranker
     ports:
       - "${RERANKER_PORT:-10072}:10072"
@@ -75,10 +75,10 @@ services:
               count: all
               capabilities: [gpu]
     command: >-
-      --model ${RERANKER_MODEL:-BAAI/bge-reranker-v2-m3}
+      ${RERANKER_MODEL:-BAAI/bge-reranker-v2-m3}
       --host 0.0.0.0
       --port 10072
-      --task score
+      --runner pooling
       --tensor-parallel-size ${RERANKER_TP:-1}
       --gpu-memory-utilization ${RERANKER_GPU_UTIL:-0.05}
       --dtype auto

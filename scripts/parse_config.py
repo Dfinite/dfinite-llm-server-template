@@ -20,8 +20,9 @@ def parse_config(config_path: str) -> dict:
     extra_args = vllm.get("extra_args", [])
 
     # ── vLLM serve 명령어 인자 조립 ──
+    # v0.18.0+: model은 positional argument로 전달
     cmd_parts = [
-        "--model", model["path"],
+        model["path"],
         "--host", "0.0.0.0",
         "--port", str(vllm.get("port", 10071)),
     ]
