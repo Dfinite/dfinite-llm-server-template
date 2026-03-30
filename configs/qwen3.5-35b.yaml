@@ -40,4 +40,6 @@ vllm:
 
   env:
     VLLM_ALLOW_LONG_MAX_MODEL_LEN: "1"
-  extra_args: []
+  extra_args:
+    - "--default-chat-template-kwargs.enable_thinking"
+    - "false"

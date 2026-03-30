@@ -40,3 +40,5 @@ vllm:
   # 비전 인코더 비활성화 → VRAM 절약
   extra_args:
     - "--language-model-only"
+    - "--default-chat-template-kwargs.enable_thinking"
+    - "false"

@@ -31,4 +31,6 @@ vllm:
 
   # 환경변수
   env: {}
-  extra_args: []
+  extra_args:
+    - "--default-chat-template-kwargs.enable_thinking"
+    - "false"
