@@ -47,13 +47,13 @@ ${CYAN}사용법:${NC}
 ${CYAN}명령어:${NC}
     <model_name>        LLM 모델 시작 (configs/ 디렉토리 기준)
     --reranker-only     Reranker 서비스만 시작
-    --embedding-only    Embedding 서비스만 시작
+    --embedding-only [config]  Embedding 서비스만 시작 (config 생략 시 기본 모델)
     --list, -l          사용 가능한 모델 목록
     --help, -h          이 도움말
 
 ${CYAN}옵션:${NC}
     --with-reranker     LLM + Reranker 동시 시작
-    --with-embedding    LLM + Embedding 동시 시작
+    --with-embedding [config]  LLM + Embedding 동시 시작 (config 생략 시 기본 모델)
     --port PORT         LLM 호스트 포트 오버라이드
     --tag TAG           vLLM Docker 이미지 태그 (기본: v0.18.0)
     --gpu DEVICES       GPU 디바이스 지정 (예: 0,1)
@@ -64,8 +64,9 @@ ${CYAN}예시:${NC}
     $0 qwen3-32b-awq --with-reranker                    # LLM + Reranker
     $0 qwen3-32b-awq --with-reranker --with-embedding   # LLM + Reranker + Embedding
     $0 --reranker-only                                   # Reranker만 시작
-    $0 --embedding-only                                  # Embedding만 시작
-    $0 qwen3.5-35b --port 8002                           # 포트 변경
+    $0 --embedding-only                                  # Embedding (기본 모델)
+    $0 --embedding-only embedding-bge-m3-ko              # Embedding (config 지정)
+    $0 qwen3-32b-awq --with-embedding embedding-qwen3-8b # LLM + 특정 Embedding
 
 ${CYAN}서비스 개별 관리:${NC}
     docker compose stop qwen-demo             # LLM만 중지
@@ -112,13 +113,28 @@ print(cfg.get('model', {}).get('path', ''))
     echo -e "  ${CYAN}bge-reranker-v2-m3${NC}       BAAI/bge-reranker-v2-m3 (기본 내장)"
     echo ""
 
-    echo -e "${BLUE}Embedding (EMBEDDING_MODEL 환경변수로 선택):${NC}"
-    echo -e "  ${CYAN}BAAI/bge-m3${NC}                       568M, 1024dim (기본)"
-    echo -e "  ${CYAN}dragonkue/BGE-m3-ko${NC}               568M, 1024dim, 한국어 특화"
-    echo -e "  ${CYAN}Qwen/Qwen3-Embedding-0.6B${NC}         0.6B, 1024dim"
-    echo -e "  ${CYAN}Qwen/Qwen3-Embedding-4B${NC}           4B, 2560dim"
-    echo -e "  ${CYAN}Qwen/Qwen3-Embedding-8B${NC}           8B, 4096dim, MTEB 다국어 1위"
+    echo -e "${BLUE}Embedding (--with-embedding / --embedding-only [config]):${NC}"
     echo ""
+    for config_file in "${CONFIG_DIR}"/embedding-*.yaml; do
+        if [[ -f "$config_file" ]]; then
+            local name=$(basename "$config_file" .yaml)
+            local desc=$(python3 -c "
+import yaml
+with open('$config_file') as f:
+    cfg = yaml.safe_load(f)
+print(cfg.get('model', {}).get('description', ''))
+" 2>/dev/null || echo "")
+            local path=$(python3 -c "
+import yaml
+with open('$config_file') as f:
+    cfg = yaml.safe_load(f)
+print(cfg.get('model', {}).get('path', ''))
+" 2>/dev/null || echo "")
+            printf "  ${GREEN}%-30s${NC} %s\n" "$name" "$desc"
+            printf "  %-30s %s\n" "" "$path"
+            echo ""
+        fi
+    done
 }
 
 # ── LLM 컨테이너만 확인/교체 ──
@@ -163,6 +179,61 @@ append_embedding_defaults() {
     grep -q "^EMBEDDING_GPU=" "$env_file" 2>/dev/null || echo "EMBEDDING_GPU=all" >> "$env_file"
     grep -q "^EMBEDDING_MAX_MODEL_LEN=" "$env_file" 2>/dev/null || echo "EMBEDDING_MAX_MODEL_LEN=8192" >> "$env_file"
     grep -q "^EMBEDDING_EXTRA_ARGS=" "$env_file" 2>/dev/null || echo "EMBEDDING_EXTRA_ARGS=" >> "$env_file"
+}
+
+# ── Embedding config → .env 반영 ──
+apply_embedding_config() {
+    local config_name="$1"
+    local env_file="$2"
+    local config_file="${CONFIG_DIR}/${config_name}.yaml"
+
+    if [[ ! -f "$config_file" ]]; then
+        log_error "Embedding 설정 파일을 찾을 수 없습니다: ${config_file}"
+        echo ""
+        echo -e "${BLUE}사용 가능한 Embedding 모델:${NC}"
+        ls -1 "${CONFIG_DIR}"/embedding-*.yaml 2>/dev/null | xargs -I {} basename {} .yaml | sed 's/^/    /'
+        echo ""
+        exit 1
+    fi
+
+    log_info "Embedding 설정 로드: ${config_name}"
+    local emb_model=$(python3 -c "
+import yaml
+with open('$config_file') as f:
+    cfg = yaml.safe_load(f)
+print(cfg.get('model', {}).get('path', ''))
+" 2>/dev/null)
+    local emb_port=$(python3 -c "
+import yaml
+with open('$config_file') as f:
+    cfg = yaml.safe_load(f)
+print(cfg.get('vllm', {}).get('port', 10073))
+" 2>/dev/null)
+    local emb_tp=$(python3 -c "
+import yaml
+with open('$config_file') as f:
+    cfg = yaml.safe_load(f)
+print(cfg.get('vllm', {}).get('tensor_parallel_size', 1))
+" 2>/dev/null)
+    local emb_gpu_util=$(python3 -c "
+import yaml
+with open('$config_file') as f:
+    cfg = yaml.safe_load(f)
+print(cfg.get('vllm', {}).get('gpu_memory_utilization', 0.10))
+" 2>/dev/null)
+    local emb_max_len=$(python3 -c "
+import yaml
+with open('$config_file') as f:
+    cfg = yaml.safe_load(f)
+print(cfg.get('vllm', {}).get('max_model_len', 8192))
+" 2>/dev/null)
+
+    # .env에 반영 (기존 값 덮어쓰기)
+    sed -i "s|^EMBEDDING_MODEL=.*|EMBEDDING_MODEL=${emb_model}|" "$env_file" 2>/dev/null || echo "EMBEDDING_MODEL=${emb_model}" >> "$env_file"
+    sed -i "s|^EMBEDDING_PORT=.*|EMBEDDING_PORT=${emb_port}|" "$env_file" 2>/dev/null || echo "EMBEDDING_PORT=${emb_port}" >> "$env_file"
+    sed -i "s|^EMBEDDING_TP=.*|EMBEDDING_TP=${emb_tp}|" "$env_file" 2>/dev/null || echo "EMBEDDING_TP=${emb_tp}" >> "$env_file"
+    sed -i "s|^EMBEDDING_GPU_UTIL=.*|EMBEDDING_GPU_UTIL=${emb_gpu_util}|" "$env_file" 2>/dev/null || echo "EMBEDDING_GPU_UTIL=${emb_gpu_util}" >> "$env_file"
+    sed -i "s|^EMBEDDING_MAX_MODEL_LEN=.*|EMBEDDING_MAX_MODEL_LEN=${emb_max_len}|" "$env_file" 2>/dev/null || echo "EMBEDDING_MAX_MODEL_LEN=${emb_max_len}" >> "$env_file"
 }
 
 # ── 서버 준비 대기 ──
@@ -219,6 +290,7 @@ main() {
     local with_embedding=false
     local reranker_only=false
     local embedding_only=false
+    local embedding_config=""
 
     # 인자 파싱
     while [[ $# -gt 0 ]]; do
@@ -226,9 +298,16 @@ main() {
             --help|-h)        show_help; exit 0 ;;
             --list|-l)        list_models; exit 0 ;;
             --with-reranker)  with_reranker=true; shift ;;
-            --with-embedding) with_embedding=true; shift ;;
+            --with-embedding) with_embedding=true; shift
+                              # 다음 인자가 config명이면 가져옴
+                              if [[ $# -gt 0 && "$1" != -* ]]; then
+                                  embedding_config="$1"; shift
+                              fi ;;
             --reranker-only)  reranker_only=true; shift ;;
-            --embedding-only) embedding_only=true; shift ;;
+            --embedding-only) embedding_only=true; shift
+                              if [[ $# -gt 0 && "$1" != -* ]]; then
+                                  embedding_config="$1"; shift
+                              fi ;;
             --port)           port_override="$2"; shift 2 ;;
             --tag)            image_tag="$2"; shift 2 ;;
             --gpu)            gpu_devices="$2"; shift 2 ;;
@@ -284,12 +363,18 @@ main() {
         append_reranker_defaults "$ENV_FILE"
         append_embedding_defaults "$ENV_FILE"
 
+        # config 지정 시 .env 덮어쓰기
+        if [[ -n "$embedding_config" ]]; then
+            apply_embedding_config "$embedding_config" "$ENV_FILE"
+        fi
+
         cd "$SCRIPT_DIR"
         docker compose --env-file "$ENV_FILE" up -d embedding-women
 
+        local emb_port=$(grep "^EMBEDDING_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"')
         echo ""
-        wait_for_service "Embedding" "10073" 180
-        echo -e "${GREEN}  Embedding API: http://localhost:10073/v1/embeddings${NC}"
+        wait_for_service "Embedding" "$emb_port" 180
+        echo -e "${GREEN}  Embedding API: http://localhost:${emb_port}/v1/embeddings${NC}"
         echo ""
         return 0
     fi
@@ -342,6 +427,11 @@ main() {
     # Reranker/Embedding 기본값 추가 (.env에 있어야 compose가 에러 안 남)
     append_reranker_defaults "$ENV_FILE"
     append_embedding_defaults "$ENV_FILE"
+
+    # Embedding config 지정 시 .env 덮어쓰기
+    if [[ -n "$embedding_config" ]]; then
+        apply_embedding_config "$embedding_config" "$ENV_FILE"
+    fi
 
     # ── 시작할 서비스 결정 ──
     local services="qwen-demo"
