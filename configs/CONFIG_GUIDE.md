@@ -2,6 +2,68 @@
 
 `configs/*.yaml` 파일은 `parse_config.py`를 통해 vLLM serve 명령어로 변환됩니다.
 
+## 값 참조 흐름
+
+start.sh가 config 값을 처리하는 우선순위입니다. 위에서부터 우선.
+
+```
+┌─────────────────────────────────────────────────────┐
+│  1. CLI 옵션 (최우선)                                │
+│     ./start.sh qwen3-32b-awq --port 8002 --tag v0.18.0
+│                                                     │
+│  2. configs/*.yaml                                  │
+│     parse_config.py가 읽어서 .env 생성              │
+│                                                     │
+│  3. .env 파일                                       │
+│     start.sh가 자동 생성, 직접 수정도 가능           │
+│                                                     │
+│  4. docker-compose.yaml 기본값 (최하위)              │
+│     ${HOST_PORT:-10071} 등 fallback                 │
+└─────────────────────────────────────────────────────┘
+```
+
+### LLM 서비스
+
+| 설정 | 결정 흐름 |
+|------|----------|
+| **모델** | `configs/{name}.yaml` → `model.path` → .env `VLLM_CMD_ARGS` |
+| **포트** | `--port` CLI > `configs/*.yaml` `vllm.port` > docker-compose 기본값 `10071` |
+| **이미지 태그** | `--tag` CLI > .env `VLLM_IMAGE_TAG` > docker-compose 기본값 `v0.18.0` |
+| **GPU 디바이스** | `--gpu` CLI > .env `NVIDIA_VISIBLE_DEVICES` > docker-compose 기본값 `all` |
+| **vLLM 인자** | `parse_config.py`가 config의 `vllm.*` + `extra_args`를 조합 → .env `VLLM_CMD_ARGS` |
+
+### Reranker 서비스
+
+docker-compose에 직접 정의. config 파일 없음.
+
+| 설정 | 결정 흐름 |
+|------|----------|
+| **모델** | .env `RERANKER_MODEL` > docker-compose 기본값 `BAAI/bge-reranker-v2-m3` |
+| **포트** | .env `RERANKER_PORT` > docker-compose 기본값 `10072` |
+| **GPU 사용률** | .env `RERANKER_GPU_UTIL` > docker-compose 기본값 `0.05` |
+
+### Embedding 서비스
+
+| 설정 | 결정 흐름 |
+|------|----------|
+| **모델** | `--embedding-only {config}` > .env `EMBEDDING_MODEL` > docker-compose 기본값 `BAAI/bge-m3` |
+| **포트** | embedding config `vllm.port` > .env `EMBEDDING_PORT` > docker-compose 기본값 `10073` |
+| **GPU 사용률** | embedding config `vllm.gpu_memory_utilization` > .env `EMBEDDING_GPU_UTIL` > 기본값 `0.10` |
+
+### 처리 과정 예시
+
+```bash
+./start.sh qwen3-32b-awq --port 9000 --with-embedding embedding-bge-m3-ko
+```
+
+1. `configs/qwen3-32b-awq.yaml` 읽기
+2. `parse_config.py`가 yaml → `.env` 변환 (MODEL_NAME, HOST_PORT, VLLM_CMD_ARGS 등)
+3. `--port 9000` → .env의 `HOST_PORT=9000`으로 덮어쓰기
+4. `append_reranker_defaults` → .env에 RERANKER_* 기본값 추가
+5. `append_embedding_defaults` → .env에 EMBEDDING_* 기본값 추가
+6. `apply_embedding_config embedding-bge-m3-ko` → configs에서 읽어 EMBEDDING_* 덮어쓰기
+7. `docker compose --env-file .env up -d qwen-demo embedding-women`
+
 ## 기본 구조
 
 ```yaml
