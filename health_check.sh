@@ -1,6 +1,6 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
-# vLLM Server Health Check (LLM + Reranker)
+# vLLM Server Health Check (LLM + Reranker + Embedding)
 # ═══════════════════════════════════════════════════════════════
 
 set -e
@@ -18,10 +18,12 @@ NC='\033[0m'
 # .env에서 읽기
 LLM_PORT=10071
 RERANKER_PORT=10072
+EMBEDDING_PORT=10073
 MODEL_NAME="unknown"
 if [[ -f "$ENV_FILE" ]]; then
     LLM_PORT=$(grep "^HOST_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"' || echo "10071")
     RERANKER_PORT=$(grep "^RERANKER_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"' || echo "10072")
+    EMBEDDING_PORT=$(grep "^EMBEDDING_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"' || echo "10073")
     MODEL_NAME=$(grep "^MODEL_NAME=" "$ENV_FILE" | cut -d= -f2 | tr -d '"' || echo "unknown")
 fi
 
@@ -55,6 +57,7 @@ do_check() {
 
     local llm_code=$(check_service "LLM" "$LLM_PORT")
     local rr_code=$(check_service "Reranker" "$RERANKER_PORT")
+    local emb_code=$(check_service "Embedding" "$EMBEDDING_PORT")
 
     if [[ "$JSON" == true ]]; then
         python3 -c "
@@ -69,7 +72,11 @@ result = {
         'model': 'BAAI/bge-reranker-v2-m3', 'port': $RERANKER_PORT,
         'healthy': $rr_code == 200, 'http_code': $rr_code
     },
-    'all_healthy': ($llm_code == 200) and ($rr_code == 200)
+    'embedding': {
+        'port': $EMBEDDING_PORT,
+        'healthy': $emb_code == 200, 'http_code': $emb_code
+    },
+    'all_healthy': ($llm_code == 200) and ($rr_code == 200) and ($emb_code == 200)
 }
 print(json.dumps(result, indent=2, ensure_ascii=False))
 " 2>/dev/null
@@ -93,11 +100,20 @@ print(json.dumps(result, indent=2, ensure_ascii=False))
 
     # Reranker
     if [[ "$rr_code" == "200" ]]; then
-        echo -e "  ${GREEN}✓${NC} Reranker (bge-reranker-v2-m3): OK  — :${RERANKER_PORT}"
+        echo -e "  ${GREEN}✓${NC} Reranker: OK  — :${RERANKER_PORT}"
     elif [[ "$rr_code" == "000" ]]; then
         echo -e "  ${RED}✗${NC} Reranker: UNREACHABLE  — :${RERANKER_PORT}"
     else
         echo -e "  ${YELLOW}⚠${NC} Reranker: HTTP ${rr_code}  — :${RERANKER_PORT}"
+    fi
+
+    # Embedding
+    if [[ "$emb_code" == "200" ]]; then
+        echo -e "  ${GREEN}✓${NC} Embedding: OK  — :${EMBEDDING_PORT}"
+    elif [[ "$emb_code" == "000" ]]; then
+        echo -e "  ${RED}✗${NC} Embedding: UNREACHABLE  — :${EMBEDDING_PORT}"
+    else
+        echo -e "  ${YELLOW}⚠${NC} Embedding: HTTP ${emb_code}  — :${EMBEDDING_PORT}"
     fi
 
     echo ""

@@ -42,7 +42,9 @@ export HF_TOKEN="hf_..."
 |------|------|
 | `<model_name>` | configs/ 디렉토리의 모델명 (예: `qwen3-32b-awq`) |
 | `--with-reranker` | LLM + Reranker 동시 시작 |
+| `--with-embedding` | LLM + Embedding 동시 시작 |
 | `--reranker-only` | Reranker 서비스만 시작 |
+| `--embedding-only` | Embedding 서비스만 시작 |
 | `--port PORT` | LLM 호스트 포트 오버라이드 |
 | `--tag TAG` | vLLM Docker 이미지 태그 지정 |
 | `--gpu DEVICES` | GPU 디바이스 지정 (예: `0,1`) |
@@ -52,10 +54,11 @@ export HF_TOKEN="hf_..."
 ```bash
 # 예시
 ./start.sh qwen3-32b-awq                    # LLM만 시작
-./start.sh qwen3-32b-awq --with-reranker    # LLM + Reranker
-./start.sh --reranker-only                   # Reranker만
-./start.sh qwen3.5-35b --port 8002          # 포트 변경
-./start.sh qwen3.5-35b --tag v0.18.0        # 특정 vLLM 버전
+./start.sh qwen3-32b-awq --with-reranker                    # LLM + Reranker
+./start.sh qwen3-32b-awq --with-reranker --with-embedding   # LLM + Reranker + Embedding
+./start.sh --reranker-only                                   # Reranker만
+./start.sh --embedding-only                                  # Embedding만
+./start.sh qwen3.5-35b --port 8002                           # 포트 변경
 ```
 
 ### stop.sh
@@ -71,8 +74,9 @@ export HF_TOKEN="hf_..."
 | `stop` (기본) | 모든 서비스 종료 |
 | `llm` | LLM만 종료 (Reranker 유지) |
 | `reranker` | Reranker만 종료 (LLM 유지) |
+| `embedding` | Embedding만 종료 |
 | `status` | 컨테이너 상태 + GPU 사용량 확인 |
-| `logs [서비스]` | 로그 보기 (`qwen-demo` / `reranker-women` / 전체) |
+| `logs [서비스]` | 로그 보기 (`qwen-demo` / `reranker-women` / `embedding-women` / 전체) |
 | `restart [서비스]` | 서비스 재시작 |
 
 ```bash
@@ -114,6 +118,16 @@ LLM과 Reranker의 헬스 상태를 확인합니다.
 | `qwen3.5-27b` | Qwen3.5-27B | Dense BF16 | ~54GB |
 | `nemotron-nano` | Nemotron-3-Nano-30B | MoE BF16 | ~60GB |
 | `qwen3-30b-thinking` | Qwen3-30B-A3B-Thinking | MoE BF16 | ~60GB |
+
+### Embedding 모델 (EMBEDDING_MODEL 환경변수로 선택)
+
+| 모델 | Params | Dim | VRAM |
+|------|--------|-----|------|
+| `BAAI/bge-m3` (기본) | 568M | 1024 | ~1.1GB |
+| `dragonkue/BGE-m3-ko` | 568M | 1024 | ~1.1GB |
+| `Qwen/Qwen3-Embedding-0.6B` | 0.6B | 1024 | ~1.2GB |
+| `Qwen/Qwen3-Embedding-4B` | 4B | 2560 | ~8GB |
+| `Qwen/Qwen3-Embedding-8B` | 8B | 4096 | ~16GB |
 
 ## 새 모델 추가
 
