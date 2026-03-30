@@ -1,0 +1,20 @@
+# Qwen3-Embedding-4B
+# ═══════════════════════════════════════════════════════════════
+# 4B params, 2560dim (Matryoshka 32-2560), max 32768 tokens
+# VRAM ~8GB
+# vLLM ≥ 0.18.0 + --runner pooling
+# API: POST /v1/embeddings
+# ═══════════════════════════════════════════════════════════════
+
+model:
+  name: "qwen3-embedding-4b"
+  path: "Qwen/Qwen3-Embedding-4B"
+  description: "Qwen3 Embedding 4B — 고성능 embedding, 2560dim, Matryoshka"
+
+vllm:
+  port: 10073
+  runner: "pooling"
+  tensor_parallel_size: 1
+  max_model_len: 8192
+  gpu_memory_utilization: 0.50
+  dtype: "auto"
