@@ -4,7 +4,9 @@
 # ═══════════════════════════════════════════════════════════════
 # LLM만:        ./start.sh qwen3-32b-awq
 # LLM+Reranker: ./start.sh qwen3-32b-awq --with-reranker
+# LLM+전체:     ./start.sh qwen3-32b-awq --with-reranker --with-embedding
 # Reranker만:   ./start.sh --reranker-only
+# Embedding만:  ./start.sh --embedding-only
 # ═══════════════════════════════════════════════════════════════
 
 set -e
@@ -45,27 +47,31 @@ ${CYAN}사용법:${NC}
 ${CYAN}명령어:${NC}
     <model_name>        LLM 모델 시작 (configs/ 디렉토리 기준)
     --reranker-only     Reranker 서비스만 시작
+    --embedding-only    Embedding 서비스만 시작
     --list, -l          사용 가능한 모델 목록
     --help, -h          이 도움말
 
 ${CYAN}옵션:${NC}
     --with-reranker     LLM + Reranker 동시 시작
+    --with-embedding    LLM + Embedding 동시 시작
     --port PORT         LLM 호스트 포트 오버라이드
-    --tag TAG           vLLM Docker 이미지 태그 (기본: latest)
+    --tag TAG           vLLM Docker 이미지 태그 (기본: v0.18.0)
     --gpu DEVICES       GPU 디바이스 지정 (예: 0,1)
     --follow, -f        로그 따라가기 (foreground)
 
 ${CYAN}예시:${NC}
-    $0 qwen3-32b-awq                        # LLM만 시작
-    $0 qwen3-32b-awq --with-reranker        # LLM + Reranker
-    $0 --reranker-only                       # Reranker만 시작
-    $0 qwen3.5-35b --port 8002              # 포트 변경
-    $0 qwen3.5-35b --tag v0.8.4             # 특정 vLLM 버전
+    $0 qwen3-32b-awq                                    # LLM만 시작
+    $0 qwen3-32b-awq --with-reranker                    # LLM + Reranker
+    $0 qwen3-32b-awq --with-reranker --with-embedding   # LLM + Reranker + Embedding
+    $0 --reranker-only                                   # Reranker만 시작
+    $0 --embedding-only                                  # Embedding만 시작
+    $0 qwen3.5-35b --port 8002                           # 포트 변경
 
 ${CYAN}서비스 개별 관리:${NC}
-    docker compose stop qwen-demo             # LLM만 중지 (reranker 유지)
+    docker compose stop qwen-demo             # LLM만 중지
     docker compose stop reranker-women       # Reranker만 중지
-    docker compose logs -f reranker-women    # Reranker 로그
+    docker compose stop embedding-women      # Embedding만 중지
+    docker compose logs -f embedding-women   # Embedding 로그
 
 ${CYAN}사용 가능한 LLM 모델:${NC}
 $(ls -1 "${CONFIG_DIR}"/*.yaml 2>/dev/null | grep -v reranker | xargs -I {} basename {} .yaml | sed 's/^/    /' || echo "    (설정 파일 없음)")
@@ -105,6 +111,14 @@ print(cfg.get('model', {}).get('path', ''))
     echo -e "${BLUE}Reranker:${NC}"
     echo -e "  ${CYAN}bge-reranker-v2-m3${NC}       BAAI/bge-reranker-v2-m3 (기본 내장)"
     echo ""
+
+    echo -e "${BLUE}Embedding (EMBEDDING_MODEL 환경변수로 선택):${NC}"
+    echo -e "  ${CYAN}BAAI/bge-m3${NC}                       568M, 1024dim (기본)"
+    echo -e "  ${CYAN}dragonkue/BGE-m3-ko${NC}               568M, 1024dim, 한국어 특화"
+    echo -e "  ${CYAN}Qwen/Qwen3-Embedding-0.6B${NC}         0.6B, 1024dim"
+    echo -e "  ${CYAN}Qwen/Qwen3-Embedding-4B${NC}           4B, 2560dim"
+    echo -e "  ${CYAN}Qwen/Qwen3-Embedding-8B${NC}           8B, 4096dim, MTEB 다국어 1위"
+    echo ""
 }
 
 # ── LLM 컨테이너만 확인/교체 ──
@@ -132,12 +146,23 @@ check_existing_llm() {
 # ── .env에 reranker 기본값 추가 ──
 append_reranker_defaults() {
     local env_file="$1"
-    # reranker 기본값이 없으면 추가
     grep -q "^RERANKER_MODEL=" "$env_file" 2>/dev/null || echo "RERANKER_MODEL=BAAI/bge-reranker-v2-m3" >> "$env_file"
     grep -q "^RERANKER_PORT=" "$env_file" 2>/dev/null || echo "RERANKER_PORT=10072" >> "$env_file"
     grep -q "^RERANKER_TP=" "$env_file" 2>/dev/null || echo "RERANKER_TP=1" >> "$env_file"
     grep -q "^RERANKER_GPU_UTIL=" "$env_file" 2>/dev/null || echo "RERANKER_GPU_UTIL=0.05" >> "$env_file"
     grep -q "^RERANKER_GPU=" "$env_file" 2>/dev/null || echo "RERANKER_GPU=all" >> "$env_file"
+}
+
+# ── .env에 embedding 기본값 추가 ──
+append_embedding_defaults() {
+    local env_file="$1"
+    grep -q "^EMBEDDING_MODEL=" "$env_file" 2>/dev/null || echo "EMBEDDING_MODEL=Qwen/Qwen3-Embedding-0.6B" >> "$env_file"
+    grep -q "^EMBEDDING_PORT=" "$env_file" 2>/dev/null || echo "EMBEDDING_PORT=10073" >> "$env_file"
+    grep -q "^EMBEDDING_TP=" "$env_file" 2>/dev/null || echo "EMBEDDING_TP=1" >> "$env_file"
+    grep -q "^EMBEDDING_GPU_UTIL=" "$env_file" 2>/dev/null || echo "EMBEDDING_GPU_UTIL=0.10" >> "$env_file"
+    grep -q "^EMBEDDING_GPU=" "$env_file" 2>/dev/null || echo "EMBEDDING_GPU=all" >> "$env_file"
+    grep -q "^EMBEDDING_MAX_MODEL_LEN=" "$env_file" 2>/dev/null || echo "EMBEDDING_MAX_MODEL_LEN=8192" >> "$env_file"
+    grep -q "^EMBEDDING_EXTRA_ARGS=" "$env_file" 2>/dev/null || echo "EMBEDDING_EXTRA_ARGS=" >> "$env_file"
 }
 
 # ── 서버 준비 대기 ──
@@ -191,7 +216,9 @@ main() {
     local gpu_devices=""
     local follow=false
     local with_reranker=false
+    local with_embedding=false
     local reranker_only=false
+    local embedding_only=false
 
     # 인자 파싱
     while [[ $# -gt 0 ]]; do
@@ -199,7 +226,9 @@ main() {
             --help|-h)        show_help; exit 0 ;;
             --list|-l)        list_models; exit 0 ;;
             --with-reranker)  with_reranker=true; shift ;;
+            --with-embedding) with_embedding=true; shift ;;
             --reranker-only)  reranker_only=true; shift ;;
+            --embedding-only) embedding_only=true; shift ;;
             --port)           port_override="$2"; shift 2 ;;
             --tag)            image_tag="$2"; shift 2 ;;
             --gpu)            gpu_devices="$2"; shift 2 ;;
@@ -233,6 +262,34 @@ main() {
         echo ""
         wait_for_service "Reranker" "10072" 180
         echo -e "${GREEN}  Reranker API: http://localhost:10072/v1/score${NC}"
+        echo ""
+        return 0
+    fi
+
+    # Embedding만 시작
+    if [[ "$embedding_only" == true ]]; then
+        ensure_pyyaml
+        log_info "Embedding 서비스만 시작합니다"
+
+        if [[ ! -f "$ENV_FILE" ]]; then
+            echo "MODEL_NAME=none" > "$ENV_FILE"
+            echo "HOST_PORT=10071" >> "$ENV_FILE"
+            echo 'VLLM_CMD_ARGS=--help' >> "$ENV_FILE"
+        fi
+
+        local hf_cache="${HF_HOME:-${HOME}/.cache/huggingface}"
+        grep -q "^HF_CACHE=" "$ENV_FILE" 2>/dev/null || echo "HF_CACHE=${hf_cache}" >> "$ENV_FILE"
+        [[ -n "${HF_TOKEN:-}" ]] && grep -q "^HF_TOKEN=" "$ENV_FILE" 2>/dev/null || echo "HF_TOKEN=${HF_TOKEN:-}" >> "$ENV_FILE"
+        [[ -n "$image_tag" ]] && echo "VLLM_IMAGE_TAG=${image_tag}" >> "$ENV_FILE"
+        append_reranker_defaults "$ENV_FILE"
+        append_embedding_defaults "$ENV_FILE"
+
+        cd "$SCRIPT_DIR"
+        docker compose --env-file "$ENV_FILE" up -d embedding-women
+
+        echo ""
+        wait_for_service "Embedding" "10073" 180
+        echo -e "${GREEN}  Embedding API: http://localhost:10073/v1/embeddings${NC}"
         echo ""
         return 0
     fi
@@ -282,13 +339,17 @@ main() {
     local hf_cache="${HF_HOME:-${HOME}/.cache/huggingface}"
     echo "HF_CACHE=${hf_cache}" >> "$ENV_FILE"
 
-    # Reranker 기본값 추가 (with-reranker든 아니든 .env에는 있어야 compose가 에러 안 남)
+    # Reranker/Embedding 기본값 추가 (.env에 있어야 compose가 에러 안 남)
     append_reranker_defaults "$ENV_FILE"
+    append_embedding_defaults "$ENV_FILE"
 
     # ── 시작할 서비스 결정 ──
     local services="qwen-demo"
     if [[ "$with_reranker" == true ]]; then
-        services="qwen-demo reranker-women"
+        services="$services reranker-women"
+    fi
+    if [[ "$with_embedding" == true ]]; then
+        services="$services embedding-women"
     fi
 
     local port=$(grep "^HOST_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"')
@@ -299,6 +360,8 @@ main() {
     echo -e "${BLUE}  LLM Port: ${port}${NC}"
     [[ "$with_reranker" == true ]] && \
     echo -e "${BLUE}  Reranker Port: 10072${NC}"
+    [[ "$with_embedding" == true ]] && \
+    echo -e "${BLUE}  Embedding Port: 10073${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
     echo ""
 
@@ -322,18 +385,21 @@ main() {
             wait_for_service "Reranker" "10072" 180
         fi
 
+        # Embedding 준비 대기
+        if [[ "$with_embedding" == true ]]; then
+            wait_for_service "Embedding" "10073" 180
+        fi
+
         # 결과 출력
         echo ""
-        echo -e "${GREEN}  ┌──────────────────────────────────────────────────┐${NC}"
-        echo -e "${GREEN}  │  LLM API:      http://localhost:${port}/v1          │${NC}"
-        echo -e "${GREEN}  │  LLM Health:   http://localhost:${port}/health      │${NC}"
-        echo -e "${GREEN}  │  LLM Models:   http://localhost:${port}/v1/models   │${NC}"
+        echo -e "${GREEN}  LLM API:         http://localhost:${port}/v1${NC}"
+        echo -e "${GREEN}  LLM Health:      http://localhost:${port}/health${NC}"
         if [[ "$with_reranker" == true ]]; then
-        echo -e "${GREEN}  │  ──────────────────────────────────────────────  │${NC}"
-        echo -e "${GREEN}  │  Reranker API:  http://localhost:10072/v1/score  │${NC}"
-        echo -e "${GREEN}  │  Reranker Health: http://localhost:10072/health  │${NC}"
+        echo -e "${GREEN}  Reranker API:    http://localhost:10072/v1/score${NC}"
         fi
-        echo -e "${GREEN}  └──────────────────────────────────────────────────┘${NC}"
+        if [[ "$with_embedding" == true ]]; then
+        echo -e "${GREEN}  Embedding API:   http://localhost:10073/v1/embeddings${NC}"
+        fi
         echo ""
     fi
 }
