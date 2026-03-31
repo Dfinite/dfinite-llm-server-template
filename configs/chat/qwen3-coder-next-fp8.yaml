@@ -1,0 +1,31 @@
+# Qwen3-Coder-Next-FP8 — Qwen 공식 FP8 양자화
+# MoE 80B total / 3B active — 코딩 에이전트 최상위 모델
+# A6000 48GB × 2 (tp=2): FP8 ~80GB → GPU당 ~40GB, reranker/embedding 공존 가능
+# KV cache ~12.8GB 여유 → max_model_len 32K 안정
+
+model:
+  name: "qwen3-coder-next-fp8"
+  path: "Qwen/Qwen3-Coder-Next-FP8"
+  description: "Qwen3 Coder Next 80B MoE FP8 — 코딩 에이전트 (공식 양자화)"
+
+vllm:
+  port: 10071
+  tensor_parallel_size: 2
+  max_model_len: 32768
+  gpu_memory_utilization: 0.90
+  dtype: "auto"
+
+  # Reasoning — Coder 계열은 non-thinking 모델이므로 reasoning_parser 불필요
+
+  # Tool calling
+  enable_auto_tool_choice: true
+  tool_call_parser: "qwen3_coder"
+
+  # Performance
+  trust_remote_code: true
+  enforce_eager: false
+  enable_prefix_caching: true
+
+  env:
+    VLLM_ALLOW_LONG_MAX_MODEL_LEN: "1"
+  extra_args: []
