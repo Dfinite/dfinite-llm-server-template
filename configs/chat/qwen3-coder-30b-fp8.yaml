@@ -10,7 +10,7 @@ model:
 
 vllm:
   port: 10071
-  tensor_parallel_size: 1
+  tensor_parallel_size: 2
   max_model_len: 65536
   gpu_memory_utilization: 0.85
   dtype: "auto"
