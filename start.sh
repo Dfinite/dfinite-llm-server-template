@@ -15,6 +15,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="${SCRIPT_DIR}/configs"
 CHAT_CONFIG_DIR="${CONFIG_DIR}/chat"
 RERANKER_CONFIG_DIR="${CONFIG_DIR}/reranker"
+VLM_CONFIG_DIR="${CONFIG_DIR}/vlm"
 EMBEDDING_CONFIG_DIR="${CONFIG_DIR}/embedding"
 ENV_FILE="${SCRIPT_DIR}/.env"
 
@@ -112,6 +113,9 @@ ${CYAN}서비스 개별 관리:${NC}
 ${CYAN}사용 가능한 Chat (LLM) 모델:${NC}
 $(ls -1 "${CHAT_CONFIG_DIR}"/*.yaml 2>/dev/null | xargs -I {} basename {} .yaml | sed 's/^/    /' || echo "    (설정 파일 없음)")
 
+${CYAN}사용 가능한 VLM 모델:${NC}
+$(ls -1 "${VLM_CONFIG_DIR}"/*.yaml 2>/dev/null | xargs -I {} basename {} .yaml | sed 's/^/    /' || echo "    (설정 파일 없음)")
+
 ${CYAN}사용 가능한 Reranker 모델:${NC}
 $(ls -1 "${RERANKER_CONFIG_DIR}"/*.yaml 2>/dev/null | xargs -I {} basename {} .yaml | sed 's/^/    /' || echo "    (설정 파일 없음)")
 
@@ -152,6 +156,10 @@ list_models() {
     echo -e "${BLUE}사용 가능한 Chat (LLM) 모델:${NC}"
     echo ""
     _list_configs "${CHAT_CONFIG_DIR}"
+
+    echo -e "${BLUE}사용 가능한 VLM 모델:${NC}"
+    echo ""
+    _list_configs "${VLM_CONFIG_DIR}"
 
     echo -e "${BLUE}사용 가능한 Reranker 모델:${NC}"
     echo ""
@@ -340,9 +348,13 @@ main() {
         exit 1
     fi
 
+    # chat/ → vlm/ 순서로 config 탐색
     local config_file="${CHAT_CONFIG_DIR}/${model_name}.yaml"
     if [[ ! -f "$config_file" ]]; then
-        log_error "설정 파일을 찾을 수 없습니다: ${config_file}"
+        config_file="${VLM_CONFIG_DIR}/${model_name}.yaml"
+    fi
+    if [[ ! -f "$config_file" ]]; then
+        log_error "설정 파일을 찾을 수 없습니다: ${model_name}"
         list_models
         exit 1
     fi
