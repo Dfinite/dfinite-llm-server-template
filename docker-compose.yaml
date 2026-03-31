@@ -59,7 +59,7 @@ services:
     volumes:
       - ${HF_CACHE:-~/.cache/huggingface}:/root/.cache/huggingface
     environment:
-      - NVIDIA_VISIBLE_DEVICES=${RERANKER_GPU:-0}
+      - CUDA_VISIBLE_DEVICES=${RERANKER_GPU:-0}
       - HF_TOKEN=${HF_TOKEN:-}
     ipc: host
     restart: unless-stopped
@@ -74,7 +74,7 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              count: 1
+              device_ids: ['${RERANKER_GPU:-0}']
               capabilities: [gpu]
     command: >-
       ${RERANKER_MODEL:-BAAI/bge-reranker-v2-m3}
@@ -100,7 +100,7 @@ services:
     volumes:
       - ${HF_CACHE:-~/.cache/huggingface}:/root/.cache/huggingface
     environment:
-      - NVIDIA_VISIBLE_DEVICES=${EMBEDDING_GPU:-1}
+      - CUDA_VISIBLE_DEVICES=${EMBEDDING_GPU:-1}
       - HF_TOKEN=${HF_TOKEN:-}
     ipc: host
     restart: unless-stopped
@@ -115,7 +115,7 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              count: 1
+              device_ids: ['${EMBEDDING_GPU:-1}']
               capabilities: [gpu]
     command: >-
       ${EMBEDDING_MODEL:-Qwen/Qwen3-Embedding-0.6B}
