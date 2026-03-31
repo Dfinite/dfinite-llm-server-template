@@ -213,7 +213,7 @@ print(cfg.get('vllm', {}).get('tensor_parallel_size', 1))
 import yaml
 with open('$config_file') as f:
     cfg = yaml.safe_load(f)
-print(cfg.get('vllm', {}).get('gpu_memory_utilization', 0.10))
+print(cfg.get('vllm', {}).get('gpu_memory_utilization', 0.05))
 " 2>/dev/null)
     local emb_max_len=$(python3 -c "
 import yaml

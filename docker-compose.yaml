@@ -123,7 +123,7 @@ services:
       --port 10073
       --runner pooling
       --tensor-parallel-size ${EMBEDDING_TP:-1}
-      --gpu-memory-utilization ${EMBEDDING_GPU_UTIL:-0.10}
+      --gpu-memory-utilization ${EMBEDDING_GPU_UTIL:-0.05}
       --max-model-len ${EMBEDDING_MAX_MODEL_LEN:-8192}
       --dtype auto
       --trust-remote-code

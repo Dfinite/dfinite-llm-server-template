@@ -8,7 +8,7 @@ vllm:
   port: 10073
   task: "embed"
   tensor_parallel_size: 1
-  gpu_memory_utilization: 0.10
+  gpu_memory_utilization: 0.05
   max_model_len: 8192
   dtype: "auto"
   trust_remote_code: true
