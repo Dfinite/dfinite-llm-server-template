@@ -1,0 +1,32 @@
+# Qwen3-Coder-30B-A3B-Instruct-FP8 — Qwen 공식 FP8 양자화
+# MoE 30B total / 3B active — 코딩 에이전트 특화
+# A6000 48GB 단일 GPU: FP8 ~31GB + reranker/embedding 공존 가능
+# KV cache ~13.8GB 여유 → max_model_len 65K 안정, 128K 단일 요청 가능
+
+model:
+  name: "qwen3-coder-30b-fp8"
+  path: "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"
+  description: "Qwen3 Coder 30B MoE FP8 — 코딩 에이전트 (공식 양자화)"
+
+vllm:
+  port: 10071
+  tensor_parallel_size: 1
+  max_model_len: 65536
+  gpu_memory_utilization: 0.85
+  dtype: "auto"
+
+  # Reasoning
+  reasoning_parser: "qwen3"
+
+  # Tool calling
+  enable_auto_tool_choice: true
+  tool_call_parser: "qwen3_coder"
+
+  # Performance
+  trust_remote_code: true
+  enforce_eager: false
+  enable_prefix_caching: true
+
+  env:
+    VLLM_ALLOW_LONG_MAX_MODEL_LEN: "1"
+  extra_args: []
