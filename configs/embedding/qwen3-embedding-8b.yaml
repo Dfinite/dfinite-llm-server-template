@@ -1,0 +1,14 @@
+# Qwen3 Embedding 8B
+model:
+  name: "qwen3-embedding-8b"
+  path: "Qwen/Qwen3-Embedding-8B"
+  description: "8B, 4096dim, MTEB 다국어 1위"
+
+vllm:
+  port: 10073
+  task: "embed"
+  tensor_parallel_size: 1
+  gpu_memory_utilization: 0.30
+  max_model_len: 8192
+  dtype: "auto"
+  trust_remote_code: true

@@ -29,19 +29,22 @@ ${CYAN}사용법:${NC}
 
 ${CYAN}명령어:${NC}
     stop (기본)     모든 서비스 종료
-    llm             LLM 서비스만 종료 (reranker 유지)
-    reranker        Reranker 서비스만 종료 (LLM 유지)
+    llm             LLM 서비스만 종료
+    reranker        Reranker 서비스만 종료
+    embedding       Embedding 서비스만 종료
     status          현재 상태 확인
-    logs [서비스]   로그 보기 (qwen-woman / reranker-women / 미지정=전체)
-    restart [서비스] 재시작 (qwen-woman / reranker-women / 미지정=전체)
+    logs [서비스]   로그 보기 (qwen-woman / reranker-women / embedding-women / 전체)
+    restart [서비스] 재시작 (qwen-woman / reranker-women / embedding-women / 전체)
 
 ${CYAN}예시:${NC}
     $0                  # 전체 종료
-    $0 llm              # LLM만 종료 (reranker-women 유지)
+    $0 llm              # LLM만 종료
     $0 reranker         # Reranker만 종료
+    $0 embedding        # Embedding만 종료
     $0 status           # 상태 확인
     $0 logs qwen-woman        # LLM 로그
     $0 logs reranker-women   # Reranker 로그
+    $0 logs embedding-women  # Embedding 로그
     $0 restart reranker-women # Reranker만 재시작
 
 EOF
@@ -107,6 +110,24 @@ for m in data.get('data', []):
 
     echo ""
 
+    # ── Embedding 상태 ──
+    echo -e "  ${CYAN}[Embedding]${NC}"
+    local emb_port=$(grep "^EMBEDDING_PORT=" "${SCRIPT_DIR}/.env" 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "10073")
+    local emb_running=$(docker compose ps -q embedding-women 2>/dev/null)
+    if [[ -n "$emb_running" ]] && docker inspect --format '{{.State.Status}}' $emb_running 2>/dev/null | grep -q "running"; then
+        echo -e "  ${GREEN}●${NC} Container: running"
+        echo -e "    Port:  ${emb_port}"
+        if curl -sf "http://localhost:${emb_port}/health" > /dev/null 2>&1; then
+            echo -e "  ${GREEN}●${NC} API: responding"
+        else
+            echo -e "  ${YELLOW}●${NC} API: loading..."
+        fi
+    else
+        echo -e "  ${RED}●${NC} Container: stopped"
+    fi
+
+    echo ""
+
     # ── GPU 상태 ──
     echo -e "  ${CYAN}[GPU]${NC}"
     if command -v nvidia-smi &> /dev/null; then
@@ -160,10 +181,16 @@ main() {
             log_info "LLM 종료 완료"
             ;;
         reranker)
-            log_info "Reranker 서비스 종료 (LLM은 유지)..."
+            log_info "Reranker 서비스 종료..."
             docker compose stop reranker-women
             docker compose rm -f reranker-women
             log_info "Reranker 종료 완료"
+            ;;
+        embedding)
+            log_info "Embedding 서비스 종료..."
+            docker compose stop embedding-women
+            docker compose rm -f embedding-women
+            log_info "Embedding 종료 완료"
             ;;
         stop|*)
             local running=$(docker compose ps -q 2>/dev/null)

@@ -3,7 +3,8 @@
 # ═══════════════════════════════════════════════════════════════
 # LLM만:        ./start.sh qwen3-32b-awq
 # LLM+Reranker: ./start.sh qwen3-32b-awq --with-reranker
-# Reranker만:   docker compose up -d reranker-women
+# LLM+전체:     ./start.sh qwen3-32b-awq --with-reranker --with-embedding
+# Embedding만:  ./start.sh --embedding-only
 #
 # ── GPU 전략 (A6000 48GB × 2) ──
 # LLM:      tp=2, 양쪽 GPU → gpu_memory_utilization으로 비율 제한
@@ -83,6 +84,49 @@ services:
       --gpu-memory-utilization ${RERANKER_GPU_UTIL:-0.05}
       --dtype auto
       --trust-remote-code
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # ─── Embedding 서비스 ───────────────────────────────────────
+  embedding-women:
+    image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.18.0}
+    container_name: vllm-embedding
+    ports:
+      - "${EMBEDDING_PORT:-10073}:10073"
+    volumes:
+      - ${HF_CACHE:-~/.cache/huggingface}:/root/.cache/huggingface
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=${EMBEDDING_GPU:-all}
+      - HF_TOKEN=${HF_TOKEN:-}
+    ipc: host
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:10073/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: >-
+      ${EMBEDDING_MODEL:-BAAI/bge-m3}
+      --host 0.0.0.0
+      --port 10073
+      --runner pooling
+      --tensor-parallel-size ${EMBEDDING_TP:-1}
+      --gpu-memory-utilization ${EMBEDDING_GPU_UTIL:-0.10}
+      --max-model-len ${EMBEDDING_MAX_MODEL_LEN:-8192}
+      --dtype auto
+      --trust-remote-code
+      ${EMBEDDING_EXTRA_ARGS:-}
     logging:
       driver: "json-file"
       options:

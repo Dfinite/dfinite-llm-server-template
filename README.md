@@ -126,7 +126,7 @@ LLM, Reranker, Embedding의 헬스 상태를 확인합니다.
 |------|--------|-----|------|
 | `BAAI/bge-m3` | 568M | 1024 | ~1.1GB |
 | `dragonkue/BGE-m3-ko` | 568M | 1024 | ~1.1GB |
-| `Qwen/Qwen3-Embedding-0.6B` (기본) | 0.6B | 1024 | ~1.2GB |
+| `Qwen/Qwen3-Embedding-0.6B` | 0.6B | 1024 | ~1.2GB |
 | `Qwen/Qwen3-Embedding-4B` | 4B | 2560 | ~8GB |
 | `Qwen/Qwen3-Embedding-8B` | 8B | 4096 | ~16GB |
 

@@ -1,0 +1,14 @@
+# Qwen3 Embedding 0.6B
+model:
+  name: "qwen3-embedding-0.6b"
+  path: "Qwen/Qwen3-Embedding-0.6B"
+  description: "0.6B, 1024dim"
+
+vllm:
+  port: 10073
+  task: "embed"
+  tensor_parallel_size: 1
+  gpu_memory_utilization: 0.10
+  max_model_len: 8192
+  dtype: "auto"
+  trust_remote_code: true
