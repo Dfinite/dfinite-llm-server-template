@@ -15,8 +15,7 @@ vllm:
   gpu_memory_utilization: 0.85
   dtype: "auto"
 
-  # Reasoning
-  reasoning_parser: "qwen3"
+  # Reasoning — Coder-Instruct는 non-thinking 모델이므로 reasoning_parser 불필요
 
   # Tool calling
   enable_auto_tool_choice: true
