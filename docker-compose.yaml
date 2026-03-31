@@ -74,7 +74,7 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ['${RERANKER_GPU:-0}']
+              count: all
               capabilities: [gpu]
     command: >-
       ${RERANKER_MODEL:-BAAI/bge-reranker-v2-m3}
@@ -115,7 +115,7 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ['${EMBEDDING_GPU:-1}']
+              count: all
               capabilities: [gpu]
     command: >-
       ${EMBEDDING_MODEL:-Qwen/Qwen3-Embedding-0.6B}
