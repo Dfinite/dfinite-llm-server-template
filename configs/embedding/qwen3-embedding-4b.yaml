@@ -1,0 +1,14 @@
+# Qwen3 Embedding 4B
+model:
+  name: "qwen3-embedding-4b"
+  path: "Qwen/Qwen3-Embedding-4B"
+  description: "4B, 2560dim"
+
+vllm:
+  port: 10073
+  task: "embed"
+  tensor_parallel_size: 1
+  gpu_memory_utilization: 0.20
+  max_model_len: 8192
+  dtype: "auto"
+  trust_remote_code: true

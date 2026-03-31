@@ -20,11 +20,15 @@ LLM_PORT=10071
 RERANKER_PORT=10072
 EMBEDDING_PORT=10073
 MODEL_NAME="unknown"
+RERANKER_MODEL="unknown"
+EMBEDDING_MODEL="unknown"
 if [[ -f "$ENV_FILE" ]]; then
     LLM_PORT=$(grep "^HOST_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"' || echo "10071")
     RERANKER_PORT=$(grep "^RERANKER_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"' || echo "10072")
     EMBEDDING_PORT=$(grep "^EMBEDDING_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"' || echo "10073")
     MODEL_NAME=$(grep "^MODEL_NAME=" "$ENV_FILE" | cut -d= -f2 | tr -d '"' || echo "unknown")
+    RERANKER_MODEL=$(grep "^RERANKER_MODEL=" "$ENV_FILE" | cut -d= -f2 | tr -d '"' || echo "unknown")
+    EMBEDDING_MODEL=$(grep "^EMBEDDING_MODEL=" "$ENV_FILE" | cut -d= -f2 | tr -d '"' || echo "unknown")
 fi
 
 WATCH=false
@@ -69,11 +73,11 @@ result = {
         'healthy': $llm_code == 200, 'http_code': $llm_code
     },
     'reranker': {
-        'model': 'BAAI/bge-reranker-v2-m3', 'port': $RERANKER_PORT,
+        'model': '$RERANKER_MODEL', 'port': $RERANKER_PORT,
         'healthy': $rr_code == 200, 'http_code': $rr_code
     },
     'embedding': {
-        'port': $EMBEDDING_PORT,
+        'model': '$EMBEDDING_MODEL', 'port': $EMBEDDING_PORT,
         'healthy': $emb_code == 200, 'http_code': $emb_code
     },
     'all_healthy': ($llm_code == 200) and ($rr_code == 200) and ($emb_code == 200)

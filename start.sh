@@ -13,6 +13,9 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="${SCRIPT_DIR}/configs"
+CHAT_CONFIG_DIR="${CONFIG_DIR}/chat"
+RERANKER_CONFIG_DIR="${CONFIG_DIR}/reranker"
+EMBEDDING_CONFIG_DIR="${CONFIG_DIR}/embedding"
 ENV_FILE="${SCRIPT_DIR}/.env"
 
 # ── 색상 ──
@@ -45,7 +48,7 @@ ${CYAN}사용법:${NC}
     $0 <model_name> [옵션]
 
 ${CYAN}명령어:${NC}
-    <model_name>        LLM 모델 시작 (configs/ 디렉토리 기준)
+    <model_name>        LLM 모델 시작 (configs/chat/ 디렉토리 기준)
     --reranker-only     Reranker 서비스만 시작
     --embedding-only [config]  Embedding 서비스만 시작 (config 생략 시 기본 모델)
     --list, -l          사용 가능한 모델 목록
@@ -65,8 +68,9 @@ ${CYAN}예시:${NC}
     $0 qwen3-32b-awq --with-reranker --with-embedding   # LLM + Reranker + Embedding
     $0 --reranker-only                                   # Reranker만 시작
     $0 --embedding-only                                  # Embedding (기본 모델)
-    $0 --embedding-only embedding-bge-m3-ko              # Embedding (config 지정)
-    $0 qwen3-32b-awq --with-embedding embedding-qwen3-8b # LLM + 특정 Embedding
+    $0 --embedding-only bge-m3-ko                        # Embedding (config 지정)
+    $0 qwen3-32b-awq --with-embedding qwen3-embedding-8b # LLM + 특정 Embedding
+    $0 qwen3.5-35b --port 8002                           # 포트 변경
 
 ${CYAN}서비스 개별 관리:${NC}
     docker compose stop qwen-demo             # LLM만 중지
@@ -74,67 +78,57 @@ ${CYAN}서비스 개별 관리:${NC}
     docker compose stop embedding-women      # Embedding만 중지
     docker compose logs -f embedding-women   # Embedding 로그
 
-${CYAN}사용 가능한 LLM 모델:${NC}
-$(ls -1 "${CONFIG_DIR}"/*.yaml 2>/dev/null | grep -v reranker | xargs -I {} basename {} .yaml | sed 's/^/    /' || echo "    (설정 파일 없음)")
+${CYAN}사용 가능한 Chat (LLM) 모델:${NC}
+$(ls -1 "${CHAT_CONFIG_DIR}"/*.yaml 2>/dev/null | xargs -I {} basename {} .yaml | sed 's/^/    /' || echo "    (설정 파일 없음)")
+
+${CYAN}사용 가능한 Reranker 모델:${NC}
+$(ls -1 "${RERANKER_CONFIG_DIR}"/*.yaml 2>/dev/null | xargs -I {} basename {} .yaml | sed 's/^/    /' || echo "    (설정 파일 없음)")
+
+${CYAN}사용 가능한 Embedding 모델:${NC}
+$(ls -1 "${EMBEDDING_CONFIG_DIR}"/*.yaml 2>/dev/null | xargs -I {} basename {} .yaml | sed 's/^/    /' || echo "    (설정 파일 없음)")
 
 EOF
 }
 
-# ── 모델 목록 ──
+# ── 모델 목록 (configs 디렉토리에서 동적으로 읽기) ──
+_list_configs() {
+    local dir="$1"
+    for config_file in "${dir}"/*.yaml; do
+        [[ -f "$config_file" ]] || continue
+        local name=$(basename "$config_file" .yaml)
+        local desc=$(python3 -c "
+import yaml
+with open('$config_file') as f:
+    cfg = yaml.safe_load(f)
+print(cfg.get('model', {}).get('description', ''))
+" 2>/dev/null || echo "")
+        local path=$(python3 -c "
+import yaml
+with open('$config_file') as f:
+    cfg = yaml.safe_load(f)
+print(cfg.get('model', {}).get('path', ''))
+" 2>/dev/null || echo "")
+        printf "  ${GREEN}%-25s${NC} %s\n" "$name" "$desc"
+        printf "  %-25s %s\n" "" "$path"
+        echo ""
+    done
+}
+
 list_models() {
     ensure_pyyaml
     echo ""
-    echo -e "${BLUE}사용 가능한 LLM 모델:${NC}"
-    echo ""
-    for config_file in "${CONFIG_DIR}"/*.yaml; do
-        if [[ -f "$config_file" ]]; then
-            local name=$(basename "$config_file" .yaml)
-            # reranker config는 스킵
-            [[ "$name" == "reranker" ]] && continue
-            local desc=$(python3 -c "
-import yaml
-with open('$config_file') as f:
-    cfg = yaml.safe_load(f)
-print(cfg.get('model', {}).get('description', ''))
-" 2>/dev/null || echo "")
-            local path=$(python3 -c "
-import yaml
-with open('$config_file') as f:
-    cfg = yaml.safe_load(f)
-print(cfg.get('model', {}).get('path', ''))
-" 2>/dev/null || echo "")
-            printf "  ${GREEN}%-25s${NC} %s\n" "$name" "$desc"
-            printf "  %-25s %s\n" "" "$path"
-            echo ""
-        fi
-    done
 
-    echo -e "${BLUE}Reranker:${NC}"
-    echo -e "  ${CYAN}bge-reranker-v2-m3${NC}       BAAI/bge-reranker-v2-m3 (기본 내장)"
+    echo -e "${BLUE}사용 가능한 Chat (LLM) 모델:${NC}"
     echo ""
+    _list_configs "${CHAT_CONFIG_DIR}"
 
-    echo -e "${BLUE}Embedding (--with-embedding / --embedding-only [config]):${NC}"
+    echo -e "${BLUE}사용 가능한 Reranker 모델:${NC}"
     echo ""
-    for config_file in "${CONFIG_DIR}"/embedding-*.yaml; do
-        if [[ -f "$config_file" ]]; then
-            local name=$(basename "$config_file" .yaml)
-            local desc=$(python3 -c "
-import yaml
-with open('$config_file') as f:
-    cfg = yaml.safe_load(f)
-print(cfg.get('model', {}).get('description', ''))
-" 2>/dev/null || echo "")
-            local path=$(python3 -c "
-import yaml
-with open('$config_file') as f:
-    cfg = yaml.safe_load(f)
-print(cfg.get('model', {}).get('path', ''))
-" 2>/dev/null || echo "")
-            printf "  ${GREEN}%-30s${NC} %s\n" "$name" "$desc"
-            printf "  %-30s %s\n" "" "$path"
-            echo ""
-        fi
-    done
+    _list_configs "${RERANKER_CONFIG_DIR}"
+
+    echo -e "${BLUE}사용 가능한 Embedding 모델 (--with-embedding / --embedding-only [config]):${NC}"
+    echo ""
+    _list_configs "${EMBEDDING_CONFIG_DIR}"
 }
 
 # ── LLM 컨테이너만 확인/교체 ──
@@ -185,13 +179,13 @@ append_embedding_defaults() {
 apply_embedding_config() {
     local config_name="$1"
     local env_file="$2"
-    local config_file="${CONFIG_DIR}/${config_name}.yaml"
+    local config_file="${EMBEDDING_CONFIG_DIR}/${config_name}.yaml"
 
     if [[ ! -f "$config_file" ]]; then
         log_error "Embedding 설정 파일을 찾을 수 없습니다: ${config_file}"
         echo ""
         echo -e "${BLUE}사용 가능한 Embedding 모델:${NC}"
-        ls -1 "${CONFIG_DIR}"/embedding-*.yaml 2>/dev/null | xargs -I {} basename {} .yaml | sed 's/^/    /'
+        ls -1 "${EMBEDDING_CONFIG_DIR}"/*.yaml 2>/dev/null | xargs -I {} basename {} .yaml | sed 's/^/    /'
         echo ""
         exit 1
     fi
@@ -385,7 +379,7 @@ main() {
         exit 1
     fi
 
-    local config_file="${CONFIG_DIR}/${model_name}.yaml"
+    local config_file="${CHAT_CONFIG_DIR}/${model_name}.yaml"
     if [[ ! -f "$config_file" ]]; then
         log_error "설정 파일을 찾을 수 없습니다: ${config_file}"
         list_models
