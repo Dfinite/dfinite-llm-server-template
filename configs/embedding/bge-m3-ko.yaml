@@ -1,0 +1,14 @@
+# BGE M3 Korean Embedding
+model:
+  name: "bge-m3-ko"
+  path: "dragonkue/BGE-m3-ko"
+  description: "568M, 1024dim, 한국어 특화"
+
+vllm:
+  port: 10073
+  task: "embed"
+  tensor_parallel_size: 1
+  gpu_memory_utilization: 0.10
+  max_model_len: 8192
+  dtype: "auto"
+  trust_remote_code: true
