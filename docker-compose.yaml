@@ -7,8 +7,9 @@
 # Embedding만:  ./start.sh --embedding-only
 #
 # ── GPU 전략 (A6000 48GB × 2) ──
-# LLM:      tp=2, 양쪽 GPU → gpu_memory_utilization으로 비율 제한
-# Reranker: tp=1, 같은 GPU에서 남은 VRAM 활용 (568M → ~1.1GB)
+# LLM:       tp=2, 양쪽 GPU 사용
+# Reranker:  tp=1, GPU 0 고정 (기본)
+# Embedding: tp=1, GPU 1 고정 (기본)
 # ═══════════════════════════════════════════════════════════════
 
 services:
@@ -58,7 +59,7 @@ services:
     volumes:
       - ${HF_CACHE:-~/.cache/huggingface}:/root/.cache/huggingface
     environment:
-      - NVIDIA_VISIBLE_DEVICES=${RERANKER_GPU:-all}
+      - NVIDIA_VISIBLE_DEVICES=${RERANKER_GPU:-0}
       - HF_TOKEN=${HF_TOKEN:-}
     ipc: host
     restart: unless-stopped
@@ -99,7 +100,7 @@ services:
     volumes:
       - ${HF_CACHE:-~/.cache/huggingface}:/root/.cache/huggingface
     environment:
-      - NVIDIA_VISIBLE_DEVICES=${EMBEDDING_GPU:-all}
+      - NVIDIA_VISIBLE_DEVICES=${EMBEDDING_GPU:-1}
       - HF_TOKEN=${HF_TOKEN:-}
     ipc: host
     restart: unless-stopped

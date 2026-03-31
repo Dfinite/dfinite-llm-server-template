@@ -12,7 +12,7 @@ vllm:
   port: 10071
   tensor_parallel_size: 2
   max_model_len: 32768
-  gpu_memory_utilization: 0.90
+  gpu_memory_utilization: 0.80
   dtype: "auto"
 
   # Reasoning — Coder 계열은 non-thinking 모델이므로 reasoning_parser 불필요
