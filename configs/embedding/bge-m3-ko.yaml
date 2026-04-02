@@ -5,7 +5,6 @@ model:
   description: "568M, 1024dim, 한국어 특화"
 
 vllm:
-  port: 10073
   task: "embed"
   tensor_parallel_size: 1
   gpu_memory_utilization: 0.10

@@ -12,7 +12,6 @@ model:
   description: "Qwen3.5 27B Dense VLM — 이미지 이해 + reasoning (vLLM ≥0.18.0)"
 
 vllm:
-  port: 30071
   tensor_parallel_size: 2
   max_model_len: 16384               # L40S: A6000 대비 VRAM 적음 + 이미지 토큰 고려
   gpu_memory_utilization: 0.90        # L40S 45GB — 빡빡하므로 0.90으로 올림

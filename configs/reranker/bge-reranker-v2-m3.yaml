@@ -19,7 +19,6 @@ model:
   description: "BGE Reranker v2 M3 — 100+ 언어, 568M params, Apache 2.0"
 
 vllm:
-  port: 10072
   task: "score"
   tensor_parallel_size: 1          # 568M → 단일 GPU 충분
   gpu_memory_utilization: 0.3      # LLM과 GPU 공유이므로 낮게

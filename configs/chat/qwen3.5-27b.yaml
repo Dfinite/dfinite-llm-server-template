@@ -12,7 +12,6 @@ model:
   description: "Qwen3.5 27B Dense — 텍스트 전용, 코딩/추론 (vLLM ≥0.18.0)"
 
 vllm:
-  port: 8000
   tensor_parallel_size: 2
   max_model_len: 32768
   gpu_memory_utilization: 0.85
