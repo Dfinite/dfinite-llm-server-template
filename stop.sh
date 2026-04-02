@@ -159,7 +159,7 @@ main() {
                     log_info "실행중인 서비스 없음"
                 else
                     log_info "전체 서비스 종료..."
-                    docker compose down
+                    docker compose down --remove-orphans
                     log_info "종료 완료"
                 fi
             fi
