@@ -5,7 +5,7 @@ model:
   description: "8B, 4096dim, MTEB 다국어 1위"
 
 vllm:
-  task: "embed"
+  runner: "pooling"
   tensor_parallel_size: 1
   gpu_memory_utilization: 0.30
   max_model_len: 8192
