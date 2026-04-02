@@ -16,6 +16,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -242,6 +243,25 @@ def generate_compose(registry: dict) -> str:
     return output
 
 
+def stop_existing_services():
+    """기존 compose 서비스 종료 (compose 재생성 전 호출)"""
+    if not COMPOSE_PATH.exists():
+        return
+    try:
+        result = subprocess.run(
+            ["docker", "compose", "-f", str(COMPOSE_PATH), "ps", "-q"],
+            capture_output=True, text=True, cwd=str(PROJECT_ROOT),
+        )
+        if result.stdout.strip():
+            print("Stopping existing services...")
+            subprocess.run(
+                ["docker", "compose", "-f", str(COMPOSE_PATH), "down", "--remove-orphans"],
+                cwd=str(PROJECT_ROOT),
+            )
+    except FileNotFoundError:
+        pass  # docker not installed (dev machine)
+
+
 def write_compose(registry: dict):
     """docker-compose.yaml 재생성"""
     content = generate_compose(registry)
@@ -396,6 +416,7 @@ def cmd_init(args):
         print("No services registered.")
         return
 
+    stop_existing_services()
     save_registry(registry)
     write_compose(registry)
     print("")
