@@ -9,7 +9,6 @@ model:
   description: "Qwen3 Coder Next 80B MoE FP8 — 코딩 에이전트 (공식 양자화)"
 
 vllm:
-  port: 10071
   tensor_parallel_size: 2
   max_model_len: 32768
   gpu_memory_utilization: 0.85

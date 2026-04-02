@@ -10,8 +10,13 @@ import yaml
 from pathlib import Path
 
 
-def parse_config(config_path: str) -> dict:
-    """YAML 설정을 읽어 docker-compose .env 변수로 변환"""
+def parse_config(config_path: str, port: int = 8000) -> dict:
+    """YAML 설정을 읽어 vLLM 명령어 인자로 변환
+
+    Args:
+        config_path: config YAML 파일 경로
+        port: 서비스 포트 (배치 시 결정, config에는 없음)
+    """
     with open(config_path, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
@@ -25,7 +30,7 @@ def parse_config(config_path: str) -> dict:
     cmd_parts = [
         model["path"],
         "--host", "0.0.0.0",
-        "--port", str(vllm.get("port", 10071)),
+        "--port", str(port),
     ]
 
     # runner 모드 (reranker/embedding용)
@@ -72,11 +77,11 @@ def parse_config(config_path: str) -> dict:
     if extra_args:
         cmd_parts.extend(str(a) for a in extra_args)
 
-    # ── .env 변수 생성 ──
+    # ── 결과 생성 ──
     env = {
         "MODEL_NAME": model.get("name", "default"),
         "MODEL_PATH": model["path"],
-        "HOST_PORT": str(vllm.get("port", 10071)),
+        "HOST_PORT": str(port),
         "VLLM_CMD_ARGS": " ".join(cmd_parts),
     }
 

@@ -82,8 +82,18 @@ def get_used_ports(registry: dict) -> set:
     return {svc["port"] for svc in registry["services"].values()}
 
 
-def resolve_port(requested: int | None, config_default: int, registry: dict) -> int:
+# 타입별 기본 포트
+DEFAULT_PORTS = {
+    "chat": 10071,
+    "vlm": 10071,
+    "reranker": 10072,
+    "embedding": 10073,
+}
+
+
+def resolve_port(requested: int | None, service_type: str, registry: dict) -> int:
     used = get_used_ports(registry)
+    type_default = DEFAULT_PORTS.get(service_type, 10071)
     if requested is not None:
         if requested in used:
             print(f"ERROR: Port {requested} already in use")
@@ -92,9 +102,9 @@ def resolve_port(requested: int | None, config_default: int, registry: dict) -> 
                     print(f"  → used by '{name}' ({svc['type']}/{svc['config']})")
             sys.exit(1)
         return requested
-    if config_default not in used:
-        return config_default
-    candidate = config_default
+    if type_default not in used:
+        return type_default
+    candidate = type_default
     while candidate in used:
         candidate += 1
     return candidate
@@ -109,11 +119,9 @@ def build_service_block(name: str, service_type: str, config_name: str,
     """config를 parse_config로 파싱하여 서비스 블록 생성"""
     config_path = get_config_path(service_type, config_name)
     cfg = load_config(service_type, config_name)
-    env_result = parse_config(str(config_path))
+    env_result = parse_config(str(config_path), port=port)
 
-    # 포트 오버라이드
     cmd_args = env_result["VLLM_CMD_ARGS"]
-    cmd_args = re.sub(r"--port \d+", f"--port {port}", cmd_args)
 
     model_desc = cfg.get("model", {}).get("description", config_name)
     vllm_cfg = cfg.get("vllm", {})
@@ -249,8 +257,6 @@ def write_compose(registry: dict):
 
 def cmd_add(args):
     registry = load_registry()
-    cfg = load_config(args.type, args.config_name)
-    vllm_cfg = cfg.get("vllm", {})
 
     # 서비스명 결정
     name = args.name or f"{args.type}-{args.config_name}"
@@ -258,9 +264,11 @@ def cmd_add(args):
         print(f"ERROR: Service '{name}' already exists. Use a different --name or remove it first.")
         sys.exit(1)
 
-    # 포트 결정
-    config_port = vllm_cfg.get("port", 10071)
-    port = resolve_port(args.port, config_port, registry)
+    # config 존재 확인
+    load_config(args.type, args.config_name)
+
+    # 포트 결정 (타입별 기본값)
+    port = resolve_port(args.port, args.type, registry)
 
     # GPU
     gpu = args.gpu or "all"
@@ -277,11 +285,9 @@ def cmd_add(args):
     save_registry(registry)
     write_compose(registry)
 
-    model_path = cfg.get("model", {}).get("path", "")
     print(f"Added service '{name}'")
     print(f"  Type:   {args.type}")
     print(f"  Config: {args.config_name}")
-    print(f"  Model:  {model_path}")
     print(f"  Port:   {port}")
     print(f"  GPU:    {gpu}")
 
@@ -336,19 +342,14 @@ def cmd_init(args):
     print("")
 
     # 각 타입별 config 탐색
-    for service_type in ["chat", "reranker", "embedding"]:
+    for service_type in ["chat", "vlm", "reranker", "embedding"]:
         type_dir = CONFIGS_DIR / service_type
         if not type_dir.exists():
             continue
+        default_port = DEFAULT_PORTS.get(service_type, 10071)
         for config_file in sorted(type_dir.glob("*.yaml")):
             config_name = config_file.stem
-            with open(config_file, "r", encoding="utf-8") as f:
-                cfg = yaml.safe_load(f)
-            model = cfg.get("model", {})
-            vllm_cfg = cfg.get("vllm", {})
-            port = vllm_cfg.get("port", 10071)
-            desc = model.get("description", "")
-            print(f"  [{service_type}] {config_name}: {desc} (port {port})")
+            print(f"  [{service_type}] {config_name} (default port {default_port})")
 
     print("")
     print("Enter services to register (one per line, format: TYPE CONFIG_NAME SERVICE_NAME [PORT] [GPU])")
@@ -380,10 +381,8 @@ def cmd_init(args):
 
         # 포트 결정
         if port is None:
-            with open(config_path, "r", encoding="utf-8") as f:
-                cfg = yaml.safe_load(f)
-            port = cfg.get("vllm", {}).get("port", 10071)
-        port = resolve_port(None if port in get_used_ports(registry) else port, port, registry)
+            port = DEFAULT_PORTS.get(stype, 10071)
+        port = resolve_port(None if port in get_used_ports(registry) else port, stype, registry)
 
         registry["services"][svc_name] = {
             "type": stype,

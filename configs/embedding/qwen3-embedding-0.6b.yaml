@@ -5,7 +5,6 @@ model:
   description: "0.6B, 1024dim"
 
 vllm:
-  port: 10073
   task: "embed"
   tensor_parallel_size: 1
   gpu_memory_utilization: 0.05
