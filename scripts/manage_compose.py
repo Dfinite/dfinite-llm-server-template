@@ -120,7 +120,7 @@ def build_service_block(name: str, service_type: str, config_name: str,
     env_vars = vllm_cfg.get("env", {})
 
     # 서비스 타입별 설정
-    is_chat = service_type == "chat"
+    is_chat = service_type in ("chat", "vlm")
     start_period = "300s" if is_chat else "120s"
 
     # 환경변수 라인
@@ -336,7 +336,7 @@ def cmd_init(args):
     print("")
 
     # 각 타입별 config 탐색
-    for service_type in ["chat", "reranker", "embedding"]:
+    for service_type in ["chat", "vlm", "reranker", "embedding"]:
         type_dir = CONFIGS_DIR / service_type
         if not type_dir.exists():
             continue
@@ -418,7 +418,7 @@ def main():
 
     # add
     add_p = sub.add_parser("add", help="서비스 추가")
-    add_p.add_argument("type", choices=["chat", "reranker", "embedding"], help="서비스 타입")
+    add_p.add_argument("type", choices=["chat", "vlm", "reranker", "embedding"], help="서비스 타입")
     add_p.add_argument("config_name", help="Config 파일명 (확장자 제외)")
     add_p.add_argument("--name", default=None, help="서비스명 (기본: {type}-{config_name})")
     add_p.add_argument("--port", type=int, default=None, help="포트 (기본: config에서 읽기)")
