@@ -8,7 +8,6 @@ model:
   description: "Qwen3 32B AWQ 양자화 모델 — 범용 추론/코딩"
 
 vllm:
-  port: 10071
   tensor_parallel_size: 2
   max_model_len: 32768
   gpu_memory_utilization: 0.80

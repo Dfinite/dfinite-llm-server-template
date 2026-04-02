@@ -1,22 +1,19 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
-# vLLM Server Start Script (Docker Compose)
+# vLLM Server Start Script
 # ═══════════════════════════════════════════════════════════════
-# LLM만:        ./start.sh qwen3-32b-awq
-# LLM+Reranker: ./start.sh qwen3-32b-awq --with-reranker
-# LLM+전체:     ./start.sh qwen3-32b-awq --with-reranker --with-embedding
-# Reranker만:   ./start.sh --reranker-only
-# Embedding만:  ./start.sh --embedding-only
+# services.json 레지스트리 기반으로 서비스를 시작합니다.
+#
+# 전체 시작:     ./start.sh
+# 특정 서비스:   ./start.sh my-llm reranker-women
+# 서비스 목록:   ./start.sh --list
 # ═══════════════════════════════════════════════════════════════
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_DIR="${SCRIPT_DIR}/configs"
-CHAT_CONFIG_DIR="${CONFIG_DIR}/chat"
-RERANKER_CONFIG_DIR="${CONFIG_DIR}/reranker"
-EMBEDDING_CONFIG_DIR="${CONFIG_DIR}/embedding"
-ENV_FILE="${SCRIPT_DIR}/.env"
+REGISTRY="${SCRIPT_DIR}/services.json"
+COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.yaml"
 
 # ── 색상 ──
 RED=$'\033[0;31m'
@@ -30,180 +27,63 @@ log_info()  { echo -e "${GREEN}[INFO]${NC} $1"; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-# ── config에서 기본값 읽기 ──
-_read_config_val() {
-    local config_file="$1"
-    local yaml_path="$2"
-    python3 -c "
-import yaml
-with open('$config_file') as f:
-    cfg = yaml.safe_load(f)
-keys = '$yaml_path'.split('.')
-val = cfg
-for k in keys:
-    val = val.get(k, {}) if isinstance(val, dict) else ''
-print(val if val and val != {} else '')
-" 2>/dev/null
-}
-
-# 디렉토리의 첫 번째 config에서 값 읽기
-_read_default_val() {
-    local dir="$1"
-    local yaml_path="$2"
-    local first=$(ls -1 "${dir}"/*.yaml 2>/dev/null | head -1)
-    [[ -n "$first" ]] && _read_config_val "$first" "$yaml_path"
-}
-
-# ── PyYAML 확인 ──
-ensure_pyyaml() {
-    python3 -c "import yaml" 2>/dev/null && return 0
-    log_warn "PyYAML 미설치 → 자동 설치중..."
-    pip3 install --user --quiet pyyaml 2>/dev/null || pip install --quiet pyyaml
-}
-
-# ── 도움말 ──
-show_help() {
-    cat << EOF
-${BLUE}═══════════════════════════════════════════════════════════════${NC}
-${BLUE}  vLLM Server Start Script (Docker Compose)${NC}
-${BLUE}═══════════════════════════════════════════════════════════════${NC}
-
-${CYAN}사용법:${NC}
-    $0 <model_name> [옵션]
-
-${CYAN}명령어:${NC}
-    <model_name>        LLM 모델 시작 (configs/chat/ 디렉토리 기준)
-    --reranker-only     Reranker 서비스만 시작
-    --embedding-only    Embedding 서비스만 시작
-    --list, -l          사용 가능한 모델 목록
-    --help, -h          이 도움말
-
-${CYAN}옵션:${NC}
-    --with-reranker     LLM + Reranker 동시 시작
-    --with-embedding    LLM + Embedding 동시 시작
-    --port PORT         LLM 호스트 포트 오버라이드
-    --tag TAG           vLLM Docker 이미지 태그 (기본: v0.18.0)
-    --gpu DEVICES       GPU 디바이스 지정 (예: 0,1)
-    --follow, -f        로그 따라가기 (foreground)
-
-${CYAN}예시:${NC}
-    $0 qwen3-32b-awq                                    # LLM만 시작
-    $0 qwen3-32b-awq --with-reranker                    # LLM + Reranker
-    $0 qwen3-32b-awq --with-reranker --with-embedding   # LLM + Reranker + Embedding
-    $0 --reranker-only                                   # Reranker만 시작
-    $0 --embedding-only                                  # Embedding만 시작
-    $0 qwen3.5-35b --port 8002                           # 포트 변경
-
-${CYAN}서비스 개별 관리:${NC}
-    docker compose stop qwen-demo             # LLM만 중지
-    docker compose stop reranker-women       # Reranker만 중지
-    docker compose stop embedding-women      # Embedding만 중지
-    docker compose logs -f embedding-women   # Embedding 로그
-
-${CYAN}사용 가능한 Chat (LLM) 모델:${NC}
-$(ls -1 "${CHAT_CONFIG_DIR}"/*.yaml 2>/dev/null | xargs -I {} basename {} .yaml | sed 's/^/    /' || echo "    (설정 파일 없음)")
-
-${CYAN}사용 가능한 Reranker 모델:${NC}
-$(ls -1 "${RERANKER_CONFIG_DIR}"/*.yaml 2>/dev/null | xargs -I {} basename {} .yaml | sed 's/^/    /' || echo "    (설정 파일 없음)")
-
-${CYAN}사용 가능한 Embedding 모델:${NC}
-$(ls -1 "${EMBEDDING_CONFIG_DIR}"/*.yaml 2>/dev/null | xargs -I {} basename {} .yaml | sed 's/^/    /' || echo "    (설정 파일 없음)")
-
-EOF
-}
-
-# ── 모델 목록 (configs 디렉토리에서 동적으로 읽기) ──
-_list_configs() {
-    local dir="$1"
-    for config_file in "${dir}"/*.yaml; do
-        [[ -f "$config_file" ]] || continue
-        local name=$(basename "$config_file" .yaml)
-        local desc=$(python3 -c "
-import yaml
-with open('$config_file') as f:
-    cfg = yaml.safe_load(f)
-print(cfg.get('model', {}).get('description', ''))
-" 2>/dev/null || echo "")
-        local path=$(python3 -c "
-import yaml
-with open('$config_file') as f:
-    cfg = yaml.safe_load(f)
-print(cfg.get('model', {}).get('path', ''))
-" 2>/dev/null || echo "")
-        printf "  ${GREEN}%-25s${NC} %s\n" "$name" "$desc"
-        printf "  %-25s %s\n" "" "$path"
-        echo ""
-    done
-}
-
-list_models() {
-    ensure_pyyaml
-    echo ""
-
-    echo -e "${BLUE}사용 가능한 Chat (LLM) 모델:${NC}"
-    echo ""
-    _list_configs "${CHAT_CONFIG_DIR}"
-
-    echo -e "${BLUE}사용 가능한 Reranker 모델:${NC}"
-    echo ""
-    _list_configs "${RERANKER_CONFIG_DIR}"
-
-    echo -e "${BLUE}사용 가능한 Embedding 모델:${NC}"
-    echo ""
-    _list_configs "${EMBEDDING_CONFIG_DIR}"
-}
-
-# ── LLM 컨테이너만 확인/교체 ──
-check_existing_llm() {
-    local running=$(docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" ps -q qwen-demo 2>/dev/null)
-    if [[ -n "$running" ]]; then
-        local state=$(docker inspect --format '{{.State.Status}}' $running 2>/dev/null || echo "unknown")
-        if [[ "$state" == "running" ]]; then
-            local current_name=$(docker inspect --format '{{.Name}}' $running 2>/dev/null | sed 's/\///')
-            log_warn "기존 LLM 컨테이너 실행중: ${current_name}"
-            echo ""
-            read -p "  LLM 컨테이너를 교체할까요? (Reranker는 유지됩니다) (y/N): " confirm
-            if [[ "$confirm" =~ ^[yY]$ ]]; then
-                log_info "LLM 컨테이너 종료중..."
-                docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" stop qwen-demo
-                docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" rm -f qwen-demo
-            else
-                log_info "취소되었습니다."
-                exit 0
-            fi
-        fi
+# ── 사전 확인 ──
+check_prerequisites() {
+    if [[ ! -f "$REGISTRY" ]]; then
+        log_error "services.json이 없습니다."
+        echo "  먼저 서비스를 등록하세요:"
+        echo "    ./scripts/manage_compose.py add chat qwen3-32b-awq --name my-llm"
+        exit 1
+    fi
+    if [[ ! -f "$COMPOSE_FILE" ]]; then
+        log_error "docker-compose.yaml이 없습니다."
+        echo "  manage_compose.py로 서비스를 등록하면 자동 생성됩니다."
+        exit 1
     fi
 }
 
-# ── .env에 reranker 기본값 추가 (configs/reranker/ 에서 읽기) ──
-append_reranker_defaults() {
-    local env_file="$1"
-    local def_model=$(_read_default_val "${RERANKER_CONFIG_DIR}" "model.path")
-    local def_port=$(_read_default_val "${RERANKER_CONFIG_DIR}" "vllm.port")
-    local def_tp=$(_read_default_val "${RERANKER_CONFIG_DIR}" "vllm.tensor_parallel_size")
-    local def_gpu_util=$(_read_default_val "${RERANKER_CONFIG_DIR}" "vllm.gpu_memory_utilization")
-    grep -q "^RERANKER_MODEL=" "$env_file" 2>/dev/null || echo "RERANKER_MODEL=${def_model}" >> "$env_file"
-    grep -q "^RERANKER_PORT=" "$env_file" 2>/dev/null || echo "RERANKER_PORT=${def_port}" >> "$env_file"
-    grep -q "^RERANKER_TP=" "$env_file" 2>/dev/null || echo "RERANKER_TP=${def_tp:-1}" >> "$env_file"
-    grep -q "^RERANKER_GPU_UTIL=" "$env_file" 2>/dev/null || echo "RERANKER_GPU_UTIL=${def_gpu_util:-0.05}" >> "$env_file"
-    grep -q "^RERANKER_GPU=" "$env_file" 2>/dev/null || echo "RERANKER_GPU=all" >> "$env_file"
+# ── services.json에서 정보 읽기 ──
+list_services() {
+    echo ""
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}  등록된 서비스${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+    echo ""
+    python3 -c "
+import json
+with open('$REGISTRY') as f:
+    reg = json.load(f)
+if not reg.get('services'):
+    print('  (등록된 서비스 없음)')
+else:
+    print(f\"  {'NAME':<25} {'TYPE':<12} {'CONFIG':<25} {'PORT':<8} {'GPU'}\")
+    print('  ' + '─' * 78)
+    for name, svc in reg['services'].items():
+        print(f\"  {name:<25} {svc['type']:<12} {svc['config']:<25} {svc['port']:<8} {svc.get('gpu', 'all')}\")
+"
+    echo ""
 }
 
-# ── .env에 embedding 기본값 추가 (configs/embedding/ 에서 읽기) ──
-append_embedding_defaults() {
-    local env_file="$1"
-    local def_model=$(_read_default_val "${EMBEDDING_CONFIG_DIR}" "model.path")
-    local def_port=$(_read_default_val "${EMBEDDING_CONFIG_DIR}" "vllm.port")
-    local def_tp=$(_read_default_val "${EMBEDDING_CONFIG_DIR}" "vllm.tensor_parallel_size")
-    local def_gpu_util=$(_read_default_val "${EMBEDDING_CONFIG_DIR}" "vllm.gpu_memory_utilization")
-    local def_max_len=$(_read_default_val "${EMBEDDING_CONFIG_DIR}" "vllm.max_model_len")
-    grep -q "^EMBEDDING_MODEL=" "$env_file" 2>/dev/null || echo "EMBEDDING_MODEL=${def_model}" >> "$env_file"
-    grep -q "^EMBEDDING_PORT=" "$env_file" 2>/dev/null || echo "EMBEDDING_PORT=${def_port}" >> "$env_file"
-    grep -q "^EMBEDDING_TP=" "$env_file" 2>/dev/null || echo "EMBEDDING_TP=${def_tp:-1}" >> "$env_file"
-    grep -q "^EMBEDDING_GPU_UTIL=" "$env_file" 2>/dev/null || echo "EMBEDDING_GPU_UTIL=${def_gpu_util:-0.10}" >> "$env_file"
-    grep -q "^EMBEDDING_GPU=" "$env_file" 2>/dev/null || echo "EMBEDDING_GPU=all" >> "$env_file"
-    grep -q "^EMBEDDING_MAX_MODEL_LEN=" "$env_file" 2>/dev/null || echo "EMBEDDING_MAX_MODEL_LEN=${def_max_len:-8192}" >> "$env_file"
-    grep -q "^EMBEDDING_EXTRA_ARGS=" "$env_file" 2>/dev/null || echo "EMBEDDING_EXTRA_ARGS=" >> "$env_file"
+get_service_port() {
+    local name="$1"
+    python3 -c "
+import json
+with open('$REGISTRY') as f:
+    reg = json.load(f)
+svc = reg.get('services', {}).get('$name')
+if svc:
+    print(svc['port'])
+" 2>/dev/null
+}
+
+get_all_service_names() {
+    python3 -c "
+import json
+with open('$REGISTRY') as f:
+    reg = json.load(f)
+for name in reg.get('services', {}):
+    print(name)
+" 2>/dev/null
 }
 
 # ── 서버 준비 대기 ──
@@ -222,23 +102,6 @@ wait_for_service() {
             return 0
         fi
 
-        local container_status=$(docker compose -f "${SCRIPT_DIR}/docker-compose.yaml" ps --format json 2>/dev/null | python3 -c "
-import sys, json
-for line in sys.stdin:
-    try:
-        c = json.loads(line)
-        if c.get('State') == 'exited' or c.get('State') == 'dead':
-            print('stopped')
-            break
-    except: pass
-" 2>/dev/null)
-        if [[ "$container_status" == "stopped" ]]; then
-            echo ""
-            log_error "${name} 컨테이너가 시작 중 종료됨"
-            log_error "로그 확인: docker compose logs --tail 50"
-            return 1
-        fi
-
         sleep 5
         waited=$((waited + 5))
         printf "\r  대기중... %d/%d초  " "$waited" "$max_wait"
@@ -249,164 +112,74 @@ for line in sys.stdin:
     return 1
 }
 
+# ── 도움말 ──
+show_help() {
+    cat << EOF
+${BLUE}═══════════════════════════════════════════════════════════════${NC}
+${BLUE}  vLLM Server Start Script${NC}
+${BLUE}═══════════════════════════════════════════════════════════════${NC}
+
+${CYAN}사용법:${NC}
+    $0 [서비스명...]           등록된 서비스 시작 (전체 또는 지정)
+    $0 --list, -l              등록된 서비스 목록
+    $0 --follow, -f [서비스...]  foreground 모드
+    $0 --help, -h              이 도움말
+
+${CYAN}예시:${NC}
+    $0                          # 전체 시작
+    $0 my-llm                   # 특정 서비스만 시작
+    $0 my-llm reranker-women    # 여러 서비스 시작
+    $0 -f my-llm                # foreground 모드
+
+${CYAN}서비스 관리:${NC}
+    ./scripts/manage_compose.py add <type> <config> --name <name> --port <port>
+    ./scripts/manage_compose.py remove <name>
+    ./scripts/manage_compose.py list
+
+EOF
+}
+
 # ── 메인 ──
 main() {
-    local model_name=""
-    local port_override=""
-    local image_tag=""
-    local gpu_devices=""
     local follow=false
-    local with_reranker=false
-    local with_embedding=false
-    local reranker_only=false
-    local embedding_only=false
+    local services=()
 
-    # 인자 파싱
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --help|-h)        show_help; exit 0 ;;
-            --list|-l)        list_models; exit 0 ;;
-            --with-reranker)  with_reranker=true; shift ;;
-            --with-embedding) with_embedding=true; shift ;;
-            --reranker-only)  reranker_only=true; shift ;;
-            --embedding-only) embedding_only=true; shift ;;
-            --port)           port_override="$2"; shift 2 ;;
-            --tag)            image_tag="$2"; shift 2 ;;
-            --gpu)            gpu_devices="$2"; shift 2 ;;
-            --follow|-f)      follow=true; shift ;;
-            -*)               log_error "알 수 없는 옵션: $1"; exit 1 ;;
-            *)                model_name="$1"; shift ;;
+            --help|-h)   show_help; exit 0 ;;
+            --list|-l)   check_prerequisites; list_services; exit 0 ;;
+            --follow|-f) follow=true; shift ;;
+            -*)          log_error "알 수 없는 옵션: $1"; exit 1 ;;
+            *)           services+=("$1"); shift ;;
         esac
     done
 
-    # Reranker만 시작
-    if [[ "$reranker_only" == true ]]; then
-        ensure_pyyaml
-        log_info "Reranker 서비스만 시작합니다"
+    check_prerequisites
 
-        # 최소 .env 생성 (reranker만 필요한 변수)
-        if [[ ! -f "$ENV_FILE" ]]; then
-            echo "MODEL_NAME=none" > "$ENV_FILE"
-            echo "HOST_PORT=10071" >> "$ENV_FILE"
-            echo 'VLLM_CMD_ARGS=--help' >> "$ENV_FILE"
-        fi
-
-        local hf_cache="${HF_HOME:-${HOME}/.cache/huggingface}"
-        grep -q "^HF_CACHE=" "$ENV_FILE" 2>/dev/null || echo "HF_CACHE=${hf_cache}" >> "$ENV_FILE"
-        [[ -n "${HF_TOKEN:-}" ]] && grep -q "^HF_TOKEN=" "$ENV_FILE" 2>/dev/null || echo "HF_TOKEN=${HF_TOKEN:-}" >> "$ENV_FILE"
-        [[ -n "$image_tag" ]] && echo "VLLM_IMAGE_TAG=${image_tag}" >> "$ENV_FILE"
-        append_reranker_defaults "$ENV_FILE"
-
-        cd "$SCRIPT_DIR"
-        docker compose --env-file "$ENV_FILE" up -d reranker-women
-
-        local rr_port=$(grep "^RERANKER_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"')
-        echo ""
-        wait_for_service "Reranker" "$rr_port" 180
-        echo -e "${GREEN}  Reranker API: http://localhost:${rr_port}/v1/score${NC}"
-        echo ""
-        return 0
+    # 서비스 미지정 시 전체
+    if [[ ${#services[@]} -eq 0 ]]; then
+        while IFS= read -r name; do
+            services+=("$name")
+        done < <(get_all_service_names)
     fi
 
-    # Embedding만 시작
-    if [[ "$embedding_only" == true ]]; then
-        ensure_pyyaml
-        log_info "Embedding 서비스만 시작합니다"
-
-        if [[ ! -f "$ENV_FILE" ]]; then
-            echo "MODEL_NAME=none" > "$ENV_FILE"
-            echo "HOST_PORT=10071" >> "$ENV_FILE"
-            echo 'VLLM_CMD_ARGS=--help' >> "$ENV_FILE"
-        fi
-
-        local hf_cache="${HF_HOME:-${HOME}/.cache/huggingface}"
-        grep -q "^HF_CACHE=" "$ENV_FILE" 2>/dev/null || echo "HF_CACHE=${hf_cache}" >> "$ENV_FILE"
-        [[ -n "${HF_TOKEN:-}" ]] && grep -q "^HF_TOKEN=" "$ENV_FILE" 2>/dev/null || echo "HF_TOKEN=${HF_TOKEN:-}" >> "$ENV_FILE"
-        [[ -n "$image_tag" ]] && echo "VLLM_IMAGE_TAG=${image_tag}" >> "$ENV_FILE"
-        append_reranker_defaults "$ENV_FILE"
-        append_embedding_defaults "$ENV_FILE"
-
-        cd "$SCRIPT_DIR"
-        docker compose --env-file "$ENV_FILE" up -d embedding-women
-
-        local emb_port=$(grep "^EMBEDDING_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"')
-        echo ""
-        wait_for_service "Embedding" "$emb_port" 180
-        echo -e "${GREEN}  Embedding API: http://localhost:${emb_port}/v1/embeddings${NC}"
-        echo ""
-        return 0
-    fi
-
-    # LLM 모델명 필수
-    if [[ -z "$model_name" ]]; then
-        show_help
+    if [[ ${#services[@]} -eq 0 ]]; then
+        log_error "시작할 서비스가 없습니다."
+        echo "  먼저 서비스를 등록하세요:"
+        echo "    ./scripts/manage_compose.py add chat qwen3-32b-awq --name my-llm"
         exit 1
     fi
 
-    local config_file="${CHAT_CONFIG_DIR}/${model_name}.yaml"
-    if [[ ! -f "$config_file" ]]; then
-        log_error "설정 파일을 찾을 수 없습니다: ${config_file}"
-        list_models
-        exit 1
-    fi
-
-    ensure_pyyaml
-
-    # 기존 LLM 컨테이너 확인 (reranker는 건드리지 않음)
-    check_existing_llm
-
-    # ── Config → .env 변환 ──
-    log_info "설정 로드: ${model_name}"
-    python3 "${SCRIPT_DIR}/scripts/parse_config.py" "$config_file" "$ENV_FILE"
-
-    # 포트 오버라이드
-    if [[ -n "$port_override" ]]; then
-        sed -i "s/^HOST_PORT=.*/HOST_PORT=${port_override}/" "$ENV_FILE"
-        log_info "포트 오버라이드: ${port_override}"
-    fi
-
-    # GPU 디바이스 오버라이드
-    if [[ -n "$gpu_devices" ]]; then
-        echo "NVIDIA_VISIBLE_DEVICES=${gpu_devices}" >> "$ENV_FILE"
-        log_info "GPU 디바이스: ${gpu_devices}"
-    fi
-
-    # 이미지 태그 오버라이드
-    if [[ -n "$image_tag" ]]; then
-        echo "VLLM_IMAGE_TAG=${image_tag}" >> "$ENV_FILE"
-        log_info "이미지 태그: ${image_tag}"
-    fi
-
-    # HF 설정
-    [[ -n "${HF_TOKEN:-}" ]] && echo "HF_TOKEN=${HF_TOKEN}" >> "$ENV_FILE"
-    local hf_cache="${HF_HOME:-${HOME}/.cache/huggingface}"
-    echo "HF_CACHE=${hf_cache}" >> "$ENV_FILE"
-
-    # Reranker/Embedding 기본값 추가 (.env에 있어야 compose가 에러 안 남)
-    append_reranker_defaults "$ENV_FILE"
-    append_embedding_defaults "$ENV_FILE"
-
-    # ── 시작할 서비스 결정 ──
-    local services="qwen-demo"
-    if [[ "$with_reranker" == true ]]; then
-        services="$services reranker-women"
-    fi
-    if [[ "$with_embedding" == true ]]; then
-        services="$services embedding-women"
-    fi
-
-    local port=$(grep "^HOST_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"')
-    local rr_port=$(grep "^RERANKER_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"')
-    local emb_port=$(grep "^EMBEDDING_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"')
+    # HF 캐시 환경변수 (compose에서 필요)
+    export HF_CACHE="${HF_HOME:-${HOME}/.cache/huggingface}"
 
     echo ""
     echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
-    echo -e "${BLUE}  vLLM Server Starting: ${model_name}${NC}"
-    echo -e "${BLUE}  LLM Port: ${port}${NC}"
-    [[ "$with_reranker" == true ]] && \
-    echo -e "${BLUE}  Reranker Port: ${rr_port}${NC}"
-    [[ "$with_embedding" == true ]] && \
-    echo -e "${BLUE}  Embedding Port: ${emb_port}${NC}"
+    echo -e "${BLUE}  vLLM Server Starting${NC}"
+    for svc in "${services[@]}"; do
+        local port=$(get_service_port "$svc")
+        echo -e "${BLUE}  ${svc}: port ${port}${NC}"
+    done
     echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
     echo ""
 
@@ -414,37 +187,28 @@ main() {
 
     if [[ "$follow" == true ]]; then
         log_info "Foreground 모드 (Ctrl+C로 종료)"
-        docker compose --env-file "$ENV_FILE" up $services
+        docker compose up "${services[@]}"
     else
-        docker compose --env-file "$ENV_FILE" up -d $services
+        docker compose up -d "${services[@]}"
         echo ""
         log_info "컨테이너 시작됨 (백그라운드)"
         log_info "로그: docker compose logs -f"
         echo ""
 
-        # LLM 준비 대기
-        wait_for_service "LLM" "$port" 600
-
-        # Reranker 준비 대기
-        if [[ "$with_reranker" == true ]]; then
-            wait_for_service "Reranker" "$rr_port" 180
-        fi
-
-        # Embedding 준비 대기
-        if [[ "$with_embedding" == true ]]; then
-            wait_for_service "Embedding" "$emb_port" 180
-        fi
+        # 헬스체크 대기
+        for svc in "${services[@]}"; do
+            local port=$(get_service_port "$svc")
+            if [[ -n "$port" ]]; then
+                wait_for_service "$svc" "$port" 600
+            fi
+        done
 
         # 결과 출력
         echo ""
-        echo -e "${GREEN}  LLM API:         http://localhost:${port}/v1${NC}"
-        echo -e "${GREEN}  LLM Health:      http://localhost:${port}/health${NC}"
-        if [[ "$with_reranker" == true ]]; then
-        echo -e "${GREEN}  Reranker API:    http://localhost:${rr_port}/v1/score${NC}"
-        fi
-        if [[ "$with_embedding" == true ]]; then
-        echo -e "${GREEN}  Embedding API:   http://localhost:${emb_port}/v1/embeddings${NC}"
-        fi
+        for svc in "${services[@]}"; do
+            local port=$(get_service_port "$svc")
+            echo -e "${GREEN}  ${svc}: http://localhost:${port}${NC}"
+        done
         echo ""
     fi
 }
