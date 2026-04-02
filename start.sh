@@ -31,6 +31,30 @@ log_info()  { echo -e "${GREEN}[INFO]${NC} $1"; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
+# ── config에서 기본값 읽기 ──
+_read_config_val() {
+    local config_file="$1"
+    local yaml_path="$2"
+    python3 -c "
+import yaml
+with open('$config_file') as f:
+    cfg = yaml.safe_load(f)
+keys = '$yaml_path'.split('.')
+val = cfg
+for k in keys:
+    val = val.get(k, {}) if isinstance(val, dict) else ''
+print(val if val and val != {} else '')
+" 2>/dev/null
+}
+
+# 디렉토리의 첫 번째 config에서 값 읽기
+_read_default_val() {
+    local dir="$1"
+    local yaml_path="$2"
+    local first=$(ls -1 "${dir}"/*.yaml 2>/dev/null | head -1)
+    [[ -n "$first" ]] && _read_config_val "$first" "$yaml_path"
+}
+
 # ── PyYAML 확인 ──
 ensure_pyyaml() {
     python3 -c "import yaml" 2>/dev/null && return 0
@@ -192,25 +216,34 @@ check_existing_llm() {
     fi
 }
 
-# ── .env에 reranker 기본값 추가 ──
+# ── .env에 reranker 기본값 추가 (configs/reranker/ 에서 읽기) ──
 append_reranker_defaults() {
     local env_file="$1"
-    grep -q "^RERANKER_MODEL=" "$env_file" 2>/dev/null || echo "RERANKER_MODEL=BAAI/bge-reranker-v2-m3" >> "$env_file"
-    grep -q "^RERANKER_PORT=" "$env_file" 2>/dev/null || echo "RERANKER_PORT=10072" >> "$env_file"
-    grep -q "^RERANKER_TP=" "$env_file" 2>/dev/null || echo "RERANKER_TP=1" >> "$env_file"
-    grep -q "^RERANKER_GPU_UTIL=" "$env_file" 2>/dev/null || echo "RERANKER_GPU_UTIL=0.05" >> "$env_file"
+    local def_model=$(_read_default_val "${RERANKER_CONFIG_DIR}" "model.path")
+    local def_port=$(_read_default_val "${RERANKER_CONFIG_DIR}" "vllm.port")
+    local def_tp=$(_read_default_val "${RERANKER_CONFIG_DIR}" "vllm.tensor_parallel_size")
+    local def_gpu_util=$(_read_default_val "${RERANKER_CONFIG_DIR}" "vllm.gpu_memory_utilization")
+    grep -q "^RERANKER_MODEL=" "$env_file" 2>/dev/null || echo "RERANKER_MODEL=${def_model}" >> "$env_file"
+    grep -q "^RERANKER_PORT=" "$env_file" 2>/dev/null || echo "RERANKER_PORT=${def_port}" >> "$env_file"
+    grep -q "^RERANKER_TP=" "$env_file" 2>/dev/null || echo "RERANKER_TP=${def_tp:-1}" >> "$env_file"
+    grep -q "^RERANKER_GPU_UTIL=" "$env_file" 2>/dev/null || echo "RERANKER_GPU_UTIL=${def_gpu_util:-0.05}" >> "$env_file"
     grep -q "^RERANKER_GPU=" "$env_file" 2>/dev/null || echo "RERANKER_GPU=all" >> "$env_file"
 }
 
-# ── .env에 embedding 기본값 추가 ──
+# ── .env에 embedding 기본값 추가 (configs/embedding/ 에서 읽기) ──
 append_embedding_defaults() {
     local env_file="$1"
-    grep -q "^EMBEDDING_MODEL=" "$env_file" 2>/dev/null || echo "EMBEDDING_MODEL=BAAI/bge-m3" >> "$env_file"
-    grep -q "^EMBEDDING_PORT=" "$env_file" 2>/dev/null || echo "EMBEDDING_PORT=10073" >> "$env_file"
-    grep -q "^EMBEDDING_TP=" "$env_file" 2>/dev/null || echo "EMBEDDING_TP=1" >> "$env_file"
-    grep -q "^EMBEDDING_GPU_UTIL=" "$env_file" 2>/dev/null || echo "EMBEDDING_GPU_UTIL=0.10" >> "$env_file"
+    local def_model=$(_read_default_val "${EMBEDDING_CONFIG_DIR}" "model.path")
+    local def_port=$(_read_default_val "${EMBEDDING_CONFIG_DIR}" "vllm.port")
+    local def_tp=$(_read_default_val "${EMBEDDING_CONFIG_DIR}" "vllm.tensor_parallel_size")
+    local def_gpu_util=$(_read_default_val "${EMBEDDING_CONFIG_DIR}" "vllm.gpu_memory_utilization")
+    local def_max_len=$(_read_default_val "${EMBEDDING_CONFIG_DIR}" "vllm.max_model_len")
+    grep -q "^EMBEDDING_MODEL=" "$env_file" 2>/dev/null || echo "EMBEDDING_MODEL=${def_model}" >> "$env_file"
+    grep -q "^EMBEDDING_PORT=" "$env_file" 2>/dev/null || echo "EMBEDDING_PORT=${def_port}" >> "$env_file"
+    grep -q "^EMBEDDING_TP=" "$env_file" 2>/dev/null || echo "EMBEDDING_TP=${def_tp:-1}" >> "$env_file"
+    grep -q "^EMBEDDING_GPU_UTIL=" "$env_file" 2>/dev/null || echo "EMBEDDING_GPU_UTIL=${def_gpu_util:-0.10}" >> "$env_file"
     grep -q "^EMBEDDING_GPU=" "$env_file" 2>/dev/null || echo "EMBEDDING_GPU=all" >> "$env_file"
-    grep -q "^EMBEDDING_MAX_MODEL_LEN=" "$env_file" 2>/dev/null || echo "EMBEDDING_MAX_MODEL_LEN=8192" >> "$env_file"
+    grep -q "^EMBEDDING_MAX_MODEL_LEN=" "$env_file" 2>/dev/null || echo "EMBEDDING_MAX_MODEL_LEN=${def_max_len:-8192}" >> "$env_file"
     grep -q "^EMBEDDING_EXTRA_ARGS=" "$env_file" 2>/dev/null || echo "EMBEDDING_EXTRA_ARGS=" >> "$env_file"
 }
 
@@ -307,9 +340,10 @@ main() {
         cd "$SCRIPT_DIR"
         docker compose --env-file "$ENV_FILE" up -d reranker-women
 
+        local rr_port=$(grep "^RERANKER_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"')
         echo ""
-        wait_for_service "Reranker" "10072" 180
-        echo -e "${GREEN}  Reranker API: http://localhost:10072/v1/score${NC}"
+        wait_for_service "Reranker" "$rr_port" 180
+        echo -e "${GREEN}  Reranker API: http://localhost:${rr_port}/v1/score${NC}"
         echo ""
         return 0
     fi
@@ -335,9 +369,10 @@ main() {
         cd "$SCRIPT_DIR"
         docker compose --env-file "$ENV_FILE" up -d embedding-women
 
+        local emb_port=$(grep "^EMBEDDING_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"')
         echo ""
-        wait_for_service "Embedding" "10073" 180
-        echo -e "${GREEN}  Embedding API: http://localhost:10073/v1/embeddings${NC}"
+        wait_for_service "Embedding" "$emb_port" 180
+        echo -e "${GREEN}  Embedding API: http://localhost:${emb_port}/v1/embeddings${NC}"
         echo ""
         return 0
     fi
@@ -408,15 +443,17 @@ main() {
     fi
 
     local port=$(grep "^HOST_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"')
+    local rr_port=$(grep "^RERANKER_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"')
+    local emb_port=$(grep "^EMBEDDING_PORT=" "$ENV_FILE" | cut -d= -f2 | tr -d '"')
 
     echo ""
     echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
     echo -e "${BLUE}  vLLM Server Starting: ${model_name}${NC}"
     echo -e "${BLUE}  LLM Port: ${port}${NC}"
     [[ "$with_reranker" == true ]] && \
-    echo -e "${BLUE}  Reranker Port: 10072${NC}"
+    echo -e "${BLUE}  Reranker Port: ${rr_port}${NC}"
     [[ "$with_embedding" == true ]] && \
-    echo -e "${BLUE}  Embedding Port: 10073${NC}"
+    echo -e "${BLUE}  Embedding Port: ${emb_port}${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
     echo ""
 
@@ -437,12 +474,12 @@ main() {
 
         # Reranker 준비 대기
         if [[ "$with_reranker" == true ]]; then
-            wait_for_service "Reranker" "10072" 180
+            wait_for_service "Reranker" "$rr_port" 180
         fi
 
         # Embedding 준비 대기
         if [[ "$with_embedding" == true ]]; then
-            wait_for_service "Embedding" "10073" 180
+            wait_for_service "Embedding" "$emb_port" 180
         fi
 
         # 결과 출력
@@ -450,10 +487,10 @@ main() {
         echo -e "${GREEN}  LLM API:         http://localhost:${port}/v1${NC}"
         echo -e "${GREEN}  LLM Health:      http://localhost:${port}/health${NC}"
         if [[ "$with_reranker" == true ]]; then
-        echo -e "${GREEN}  Reranker API:    http://localhost:10072/v1/score${NC}"
+        echo -e "${GREEN}  Reranker API:    http://localhost:${rr_port}/v1/score${NC}"
         fi
         if [[ "$with_embedding" == true ]]; then
-        echo -e "${GREEN}  Embedding API:   http://localhost:10073/v1/embeddings${NC}"
+        echo -e "${GREEN}  Embedding API:   http://localhost:${emb_port}/v1/embeddings${NC}"
         fi
         echo ""
     fi

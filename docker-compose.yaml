@@ -18,7 +18,7 @@ services:
     image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.18.0}
     container_name: vllm-${MODEL_NAME:-default}
     ports:
-      - "${HOST_PORT:-8000}:8000"
+      - "${HOST_PORT:-8000}:${HOST_PORT:-8000}"
     volumes:
       - ${HF_CACHE:-~/.cache/huggingface}:/root/.cache/huggingface
     environment:
@@ -30,7 +30,7 @@ services:
     ipc: host
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:${HOST_PORT:-8000}/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -54,7 +54,7 @@ services:
     image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.18.0}
     container_name: vllm-reranker
     ports:
-      - "${RERANKER_PORT:-10072}:10072"
+      - "${RERANKER_PORT:-10072}:${RERANKER_PORT:-10072}"
     volumes:
       - ${HF_CACHE:-~/.cache/huggingface}:/root/.cache/huggingface
     environment:
@@ -63,7 +63,7 @@ services:
     ipc: host
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:10072/health || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:${RERANKER_PORT:-10072}/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -76,9 +76,9 @@ services:
               count: all
               capabilities: [gpu]
     command: >-
-      ${RERANKER_MODEL:-BAAI/bge-reranker-v2-m3}
+      ${RERANKER_MODEL}
       --host 0.0.0.0
-      --port 10072
+      --port ${RERANKER_PORT:-10072}
       --runner pooling
       --tensor-parallel-size ${RERANKER_TP:-1}
       --gpu-memory-utilization ${RERANKER_GPU_UTIL:-0.05}
@@ -95,7 +95,7 @@ services:
     image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.18.0}
     container_name: vllm-embedding
     ports:
-      - "${EMBEDDING_PORT:-10073}:10073"
+      - "${EMBEDDING_PORT:-10073}:${EMBEDDING_PORT:-10073}"
     volumes:
       - ${HF_CACHE:-~/.cache/huggingface}:/root/.cache/huggingface
     environment:
@@ -104,7 +104,7 @@ services:
     ipc: host
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:10073/health || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:${EMBEDDING_PORT:-10073}/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -117,9 +117,9 @@ services:
               count: all
               capabilities: [gpu]
     command: >-
-      ${EMBEDDING_MODEL:-BAAI/bge-m3}
+      ${EMBEDDING_MODEL}
       --host 0.0.0.0
-      --port 10073
+      --port ${EMBEDDING_PORT:-10073}
       --runner pooling
       --tensor-parallel-size ${EMBEDDING_TP:-1}
       --gpu-memory-utilization ${EMBEDDING_GPU_UTIL:-0.10}

@@ -2,6 +2,7 @@
 """
 Config → .env 변환기
 configs/*.yaml을 읽어 docker-compose용 .env 파일을 생성합니다.
+chat, reranker, embedding 모든 타입을 지원합니다.
 """
 
 import sys
@@ -27,6 +28,16 @@ def parse_config(config_path: str) -> dict:
         "--host", "0.0.0.0",
         "--port", "8000",
     ]
+
+    # runner 모드 (reranker/embedding용)
+    runner = vllm.get("runner")
+    if runner:
+        cmd_parts.extend(["--runner", str(runner)])
+
+    # task (reranker: score, embedding: embed)
+    task = vllm.get("task")
+    if task:
+        cmd_parts.extend(["--task", str(task)])
 
     # 핵심 파라미터
     param_map = {

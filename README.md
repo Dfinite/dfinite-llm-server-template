@@ -2,20 +2,46 @@
 
 vLLM + Docker Compose 기반 LLM 서빙 템플릿.
 
-## 디렉토리 구조
+## 배포 순서
 
-```
-├── configs/                 # 모델별 YAML 설정
-├── scripts/
-│   └── parse_config.py      # Config → .env 변환
-├── docker-compose.yaml
-├── start.sh                 # 서버 시작
-├── stop.sh                  # 서버 종료 / 상태 / 로그
-├── health_check.sh          # 헬스 체크
-└── .env.example
+### 1. 레포 클론 및 브랜치 설정
+
+```bash
+git clone git@github.com:Dfinite/dfinite-llm-server-template.git
+cd dfinite-llm-server-template
 ```
 
-## 사전 준비
+- 새 GPU 서버를 추가하는 경우: `git checkout -b feat/{새gpu서버명}` (예: `feat/a6000`, `feat/l40s`)
+- 기존 서버에서 작업하는 경우: 해당 브랜치로 이동 `git checkout feat/{서버명}`
+
+### 2. docker-compose.yaml 서비스 구성
+
+필요한 서비스를 `docker-compose.yaml`에 정의합니다.
+
+| 서비스 유형 | 서비스명 규칙 | 예시 |
+|-------------|---------------|------|
+| Chat (LLM) | `{모델대표명}-{서비스명}` | `qwen-demo`, `qwen-women` |
+| Reranker | `{모델대표명}-{서비스명}` | `reranker-women` |
+| Embedding | `{모델대표명}-{서비스명}` | `embedding-women` |
+| VLM | `{모델대표명}-{서비스명}` | `qwen-vlm-women` |
+
+포트는 서비스별로 겹치지 않게 지정합니다.
+
+### 3. 모델 config 작성
+
+`configs/` 하위 디렉토리에 모델별 YAML 설정 파일을 작성합니다.
+
+```
+configs/
+  chat/         # Chat (LLM) 모델
+  vlm/          # Vision Language 모델
+  reranker/     # Reranker 모델
+  embedding/    # Embedding 모델
+```
+
+작성 방법은 [configs/README.md](configs/README.md) 참고. 기존 파일을 복사 후 수정하는 것이 가장 빠릅니다.
+
+### 4. 사전 준비
 
 ```bash
 # PyYAML (parse_config.py에 필요)
@@ -28,11 +54,67 @@ chmod +x start.sh stop.sh health_check.sh
 export HF_TOKEN="hf_..."
 ```
 
-## 스크립트 설명
+### 5. 서버 시작
 
-### start.sh
+```bash
+./start.sh <model_name>                                     # LLM만 시작
+./start.sh <model_name> --with-reranker                     # LLM + Reranker
+./start.sh <model_name> --with-reranker --with-embedding    # LLM + Reranker + Embedding
+./start.sh --reranker-only                                   # Reranker만
+./start.sh --embedding-only                                  # Embedding만
+```
 
-모델 서버를 시작합니다. `configs/` 디렉토리의 YAML 설정을 읽어 `.env`를 자동 생성하고 Docker Compose로 컨테이너를 띄웁니다.
+사용 가능한 모델 목록 확인:
+
+```bash
+./start.sh --list
+```
+
+### 6. 로그 확인 및 헬스 체크
+
+```bash
+# 로그 확인
+./stop.sh logs                   # 전체 로그
+./stop.sh logs {서비스명}        # 특정 서비스 로그
+
+# 헬스 체크
+./health_check.sh                # 1회 체크
+./health_check.sh -w             # 5초 간격 지속 모니터링
+./health_check.sh -j             # JSON 출력
+```
+
+### 7. 서버 종료 및 관리
+
+```bash
+./stop.sh                        # 전체 종료
+./stop.sh llm                    # LLM만 종료 (Reranker/Embedding 유지)
+./stop.sh reranker               # Reranker만 종료
+./stop.sh embedding              # Embedding만 종료
+./stop.sh status                 # 컨테이너 상태 + GPU 사용량 확인
+./stop.sh restart {서비스명}     # 특정 서비스 재시작
+```
+
+---
+
+## 디렉토리 구조
+
+```
+├── configs/
+│   ├── chat/                # Chat (LLM) 모델 설정
+│   ├── vlm/                 # VLM 모델 설정
+│   ├── reranker/            # Reranker 모델 설정
+│   ├── embedding/           # Embedding 모델 설정
+│   └── README.md            # Config 작성 가이드
+├── scripts/
+│   └── parse_config.py      # Config → .env 변환
+├── docker-compose.yaml
+├── start.sh                 # 서버 시작
+├── stop.sh                  # 서버 종료 / 상태 / 로그
+├── health_check.sh          # 헬스 체크
+└── .env.example
+```
+
+## start.sh 옵션
 
 ```bash
 ./start.sh <model_name> [옵션]
@@ -40,7 +122,7 @@ export HF_TOKEN="hf_..."
 
 | 옵션 | 설명 |
 |------|------|
-| `<model_name>` | configs/ 디렉토리의 모델명 (예: `qwen3-32b-awq`) |
+| `<model_name>` | configs/chat/ 또는 configs/vlm/ 의 모델명 |
 | `--with-reranker` | LLM + Reranker 동시 시작 |
 | `--with-embedding` | LLM + Embedding 동시 시작 |
 | `--reranker-only` | Reranker 서비스만 시작 |
