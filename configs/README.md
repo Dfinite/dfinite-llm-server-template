@@ -1,79 +1,36 @@
 # Config 작성 가이드
 
-`configs/*.yaml` 파일은 `parse_config.py`를 통해 vLLM serve 명령어로 변환됩니다.
+Config 파일은 **모델 고유 속성**만 정의합니다.
+포트, GPU 등 배치 설정은 `manage_compose.py add` 시 지정합니다.
 
-## 값 참조 흐름
-
-start.sh가 config 값을 처리하는 우선순위입니다. 위에서부터 우선.
+## 처리 흐름
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  1. CLI 옵션 (최우선)                                │
-│     ./start.sh qwen3-32b-awq --port 8002 --tag v0.18.0
-│                                                     │
-│  2. configs/*.yaml                                  │
-│     parse_config.py가 읽어서 .env 생성              │
-│                                                     │
-│  3. .env 파일                                       │
-│     start.sh가 자동 생성, 직접 수정도 가능           │
-│                                                     │
-│  4. docker-compose.yaml 기본값 (최하위)              │
-│     ${HOST_PORT:-10071} 등 fallback                 │
-└─────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────┐
+│  1. configs/*.yaml                                    │
+│     모델 경로, vLLM 파라미터, extra_args 등           │
+│                                                       │
+│  2. manage_compose.py add <type> <config>              │
+│     --name, --port, --gpu → services.json 등록        │
+│     parse_config.py로 config 파싱 → compose 생성      │
+│                                                       │
+│  3. docker-compose.yaml (자동 생성)                    │
+│     서비스별 포트, GPU, 모델 명령어가 baked-in         │
+│                                                       │
+│  4. start.sh / stop.sh                                │
+│     services.json 기반으로 docker compose up/down     │
+└───────────────────────────────────────────────────────┘
 ```
-
-### LLM 서비스
-
-| 설정 | 결정 흐름 |
-|------|----------|
-| **모델** | `configs/{name}.yaml` → `model.path` → .env `VLLM_CMD_ARGS` |
-| **포트** | `--port` CLI > `configs/*.yaml` `vllm.port` > docker-compose 기본값 `10071` |
-| **이미지 태그** | `--tag` CLI > .env `VLLM_IMAGE_TAG` > docker-compose 기본값 `v0.18.0` |
-| **GPU 디바이스** | `--gpu` CLI > .env `NVIDIA_VISIBLE_DEVICES` > docker-compose 기본값 `all` |
-| **vLLM 인자** | `parse_config.py`가 config의 `vllm.*` + `extra_args`를 조합 → .env `VLLM_CMD_ARGS` |
-
-### Reranker 서비스
-
-docker-compose에 직접 정의. config 파일 없음.
-
-| 설정 | 결정 흐름 |
-|------|----------|
-| **모델** | .env `RERANKER_MODEL` > docker-compose 기본값 `BAAI/bge-reranker-v2-m3` |
-| **포트** | .env `RERANKER_PORT` > docker-compose 기본값 `10072` |
-| **GPU 사용률** | .env `RERANKER_GPU_UTIL` > docker-compose 기본값 `0.05` |
-
-### Embedding 서비스
-
-| 설정 | 결정 흐름 |
-|------|----------|
-| **모델** | `--embedding-only {config}` > .env `EMBEDDING_MODEL` > docker-compose 기본값 `BAAI/bge-m3` |
-| **포트** | embedding config `vllm.port` > .env `EMBEDDING_PORT` > docker-compose 기본값 `10073` |
-| **GPU 사용률** | embedding config `vllm.gpu_memory_utilization` > .env `EMBEDDING_GPU_UTIL` > 기본값 `0.10` |
-
-### 처리 과정 예시
-
-```bash
-./start.sh qwen3-32b-awq --port 9000 --with-embedding embedding-bge-m3-ko
-```
-
-1. `configs/qwen3-32b-awq.yaml` 읽기
-2. `parse_config.py`가 yaml → `.env` 변환 (MODEL_NAME, HOST_PORT, VLLM_CMD_ARGS 등)
-3. `--port 9000` → .env의 `HOST_PORT=9000`으로 덮어쓰기
-4. `append_reranker_defaults` → .env에 RERANKER_* 기본값 추가
-5. `append_embedding_defaults` → .env에 EMBEDDING_* 기본값 추가
-6. `apply_embedding_config embedding-bge-m3-ko` → configs에서 읽어 EMBEDDING_* 덮어쓰기
-7. `docker compose --env-file .env up -d qwen-demo embedding-women`
 
 ## 기본 구조
 
 ```yaml
 model:
-  name: "모델-이름"          # 컨테이너명에 사용 (vllm-{name})
+  name: "모델-이름"          # 식별자
   path: "Owner/Model-Name"  # HuggingFace 모델 경로
-  description: "설명"        # --list에서 표시
+  description: "설명"        # list 명령에서 표시
 
 vllm:
-  port: 10071               # 호스트 포트
   tensor_parallel_size: 2   # GPU 분할 수
   max_model_len: 32768      # 최대 context 길이
   gpu_memory_utilization: 0.85
@@ -89,20 +46,20 @@ vllm:
 
 | 필드 | 필수 | 설명 | 예시 |
 |------|------|------|------|
-| `name` | O | 모델 식별자, 컨테이너명(`vllm-{name}`)에 사용 | `"qwen3-32b-awq"` |
+| `name` | O | 모델 식별자 | `"qwen3-32b-awq"` |
 | `path` | O | HuggingFace 모델 경로 | `"Qwen/Qwen3-32B-AWQ"` |
-| `description` | - | `--list`에서 표시되는 설명 | `"Qwen3 32B AWQ — 경량 추론"` |
+| `description` | - | 설명 (compose 주석에 표시) | `"Qwen3 32B AWQ — 경량 추론"` |
 
 ## vllm 섹션 - 핵심 파라미터
 
-| 필드 | CLI 플래그 | 기본값 | 설명 |
-|------|-----------|--------|------|
-| `port` | `--port` | `10071` | vLLM 서버 포트 (호스트 포트로도 사용) |
-| `tensor_parallel_size` | `--tensor-parallel-size` | - | GPU 분할 수. GPU 2장이면 `2` |
-| `max_model_len` | `--max-model-len` | 모델 기본값 | 최대 context 길이 (토큰). VRAM에 따라 조절 |
-| `gpu_memory_utilization` | `--gpu-memory-utilization` | - | GPU 메모리 사용 비율 (0.0~1.0). 높을수록 context 여유 |
-| `dtype` | `--dtype` | - | 데이터 타입. `"auto"`, `"bfloat16"`, `"float16"` |
-| `quantization` | `--quantization` | - | 양자화 방식. `"awq"`, `"gptq"`, `"moe_wna16"` 등 |
+| 필드 | CLI 플래그 | 설명 |
+|------|-----------|------|
+| `tensor_parallel_size` | `--tensor-parallel-size` | GPU 분할 수. GPU 2장이면 `2` |
+| `max_model_len` | `--max-model-len` | 최대 context 길이 (토큰). VRAM에 따라 조절 |
+| `gpu_memory_utilization` | `--gpu-memory-utilization` | GPU 메모리 사용 비율 (0.0~1.0) |
+| `dtype` | `--dtype` | 데이터 타입. `"auto"`, `"bfloat16"`, `"float16"` |
+| `quantization` | `--quantization` | 양자화 방식. `"awq"`, `"gptq"`, `"moe_wna16"` 등 |
+| `runner` | `--runner` | Embedding/Reranker용: `"pooling"` |
 
 ## vllm 섹션 - Reasoning / Tool calling
 
@@ -127,7 +84,6 @@ vllm:
 | 필드 | CLI 플래그 | 설명 |
 |------|-----------|------|
 | `logits_processor_pattern` | `--logits-processor-pattern` | logits processor 패턴 |
-| `runner` | - | Embedding/Reranker용. `"pooling"` (LLM config에서는 사용 안 함) |
 
 ## env 섹션
 
@@ -151,16 +107,12 @@ extra_args:
   - "false"
   - "--limit-mm-per-prompt.image"                        # 이미지 최대 3장
   - "3"
-  - "--limit-mm-per-prompt.video"                        # 비디오 비활성화
-  - "0"
-  - "--max-num-batched-tokens"                           # 배치 토큰 제한
-  - "2096"
 ```
 
 > v0.18.0부터 JSON 값은 dot-notation을 사용합니다.
 > `--limit-mm-per-prompt '{"image":3}'` 대신 `--limit-mm-per-prompt.image 3`
 
-## LLM Config 예시
+## Chat/VLM Config 예시
 
 ```yaml
 model:
@@ -169,31 +121,23 @@ model:
   description: "Qwen3 32B AWQ — 경량 추론"
 
 vllm:
-  port: 10071
   tensor_parallel_size: 2
   max_model_len: 32768
   gpu_memory_utilization: 0.85
   dtype: "auto"
-  quantization: "awq"
 
   reasoning_parser: "qwen3"
   enable_auto_tool_choice: true
   tool_call_parser: "qwen3_coder"
 
   trust_remote_code: true
-  enforce_eager: false
   enable_prefix_caching: true
 
   env: {}
-  extra_args:
-    - "--default-chat-template-kwargs.enable_thinking"
-    - "false"
+  extra_args: []
 ```
 
 ## Embedding Config 예시
-
-Embedding config는 `embedding-` 접두사를 사용합니다.
-docker-compose의 `EMBEDDING_*` 환경변수로 반영됩니다.
 
 ```yaml
 model:
@@ -202,11 +146,26 @@ model:
   description: "BGE-M3 568M — 다국어 embedding, 1024dim"
 
 vllm:
-  port: 10073
-  runner: "pooling"          # embedding/reranker는 pooling 필수
+  runner: "pooling"          # embedding/reranker 필수
   tensor_parallel_size: 1
   max_model_len: 8192
   gpu_memory_utilization: 0.10
+  dtype: "auto"
+  trust_remote_code: true
+```
+
+## Reranker Config 예시
+
+```yaml
+model:
+  name: "bge-reranker-v2-m3"
+  path: "BAAI/bge-reranker-v2-m3"
+  description: "BGE Reranker v2 M3 — 568M params"
+
+vllm:
+  runner: "pooling"          # reranker도 pooling
+  tensor_parallel_size: 1
+  gpu_memory_utilization: 0.3
   dtype: "auto"
   trust_remote_code: true
 ```
@@ -229,8 +188,12 @@ vllm:
 
 ## 파일 명명 규칙
 
-| 유형 | 패턴 | 예시 |
-|------|------|------|
-| LLM | `{모델명}.yaml` | `qwen3-32b-awq.yaml` |
-| Embedding | `embedding-{모델명}.yaml` | `embedding-bge-m3.yaml` |
-| Reranker | `reranker.yaml` | (docker-compose에 내장) |
+```
+configs/
+  chat/{모델명}.yaml           # qwen3-32b-awq.yaml
+  vlm/{모델명}.yaml            # qwen3.5-27b-vlm.yaml
+  embedding/{모델명}.yaml      # bge-m3.yaml
+  reranker/{모델명}.yaml       # bge-reranker-v2-m3.yaml
+```
+
+기존 파일을 복사 후 수정하는 것이 가장 빠릅니다.
