@@ -106,13 +106,72 @@ export HF_TOKEN="hf_..."
 │   ├── embedding/           # Embedding 모델 설정
 │   └── README.md            # Config 작성 가이드
 ├── scripts/
-│   └── parse_config.py      # Config → .env 변환
+│   ├── parse_config.py      # Config → .env 변환
+│   └── manage_compose.py    # Docker Compose 서비스 동적 관리
 ├── docker-compose.yaml
+├── services.json            # 서비스 레지스트리 (manage_compose.py가 생성)
 ├── start.sh                 # 서버 시작
 ├── stop.sh                  # 서버 종료 / 상태 / 로그
 ├── health_check.sh          # 헬스 체크
 └── .env.example
 ```
+
+## Docker Compose 서비스 관리
+
+`scripts/manage_compose.py`로 docker-compose.yaml의 서비스를 동적으로 추가/삭제합니다.
+`services.json` 레지스트리를 기반으로 docker-compose.yaml을 자동 재생성합니다.
+
+### 서비스 추가
+
+```bash
+# chat 서비스 추가
+./scripts/manage_compose.py add chat qwen3-32b-awq --name my-llm --port 10071
+
+# reranker 추가
+./scripts/manage_compose.py add reranker bge-reranker-v2-m3 --name my-reranker --port 10072
+
+# embedding 추가
+./scripts/manage_compose.py add embedding bge-m3 --name my-embed --port 10073
+
+# 두 번째 LLM 추가 (다른 이름, 다른 포트)
+./scripts/manage_compose.py add chat qwen3.5-35b --name qwen35 --port 10074
+
+# GPU 지정
+./scripts/manage_compose.py add chat qwen3-32b-awq --name my-llm --gpu 0,1
+```
+
+### 서비스 삭제
+
+```bash
+./scripts/manage_compose.py remove my-llm
+```
+
+### 서비스 목록
+
+```bash
+./scripts/manage_compose.py list
+# NAME                      TYPE         CONFIG                    PORT     GPU
+# ────────────────────────────────────────────────────────────────────────────────
+# my-llm                    chat         qwen3-32b-awq             10071    all
+# my-reranker               reranker     bge-reranker-v2-m3        10072    all
+# my-embed                  embedding    bge-m3                    10073    all
+```
+
+### 초기 설정 (마이그레이션)
+
+기존 구성을 `services.json`으로 등록합니다.
+
+```bash
+./scripts/manage_compose.py init
+```
+
+### 참고
+
+- `--name` 생략 시 `{type}-{config_name}` 형태로 자동 생성
+- `--port` 생략 시 config YAML의 기본 포트 사용, 충돌 시 자동 증가
+- docker-compose.yaml은 `manage_compose.py`가 재생성하므로 직접 수정하지 마세요
+
+---
 
 ## start.sh 옵션
 
