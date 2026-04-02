@@ -187,9 +187,9 @@ main() {
 
     if [[ "$follow" == true ]]; then
         log_info "Foreground 모드 (Ctrl+C로 종료)"
-        docker compose up "${services[@]}"
+        docker compose up --remove-orphans "${services[@]}"
     else
-        docker compose up -d "${services[@]}"
+        docker compose up -d --remove-orphans "${services[@]}"
         echo ""
         log_info "컨테이너 시작됨 (백그라운드)"
         log_info "로그: docker compose logs -f"
