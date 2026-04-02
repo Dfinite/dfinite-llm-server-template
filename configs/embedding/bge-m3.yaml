@@ -5,7 +5,7 @@ model:
   description: "568M, 1024dim, 100+ 언어 (기본)"
 
 vllm:
-  task: "embed"
+  runner: "pooling"
   tensor_parallel_size: 1
   gpu_memory_utilization: 0.05
   max_model_len: 8192

@@ -5,7 +5,7 @@ model:
   description: "4B, 2560dim"
 
 vllm:
-  task: "embed"
+  runner: "pooling"
   tensor_parallel_size: 1
   gpu_memory_utilization: 0.20
   max_model_len: 8192
