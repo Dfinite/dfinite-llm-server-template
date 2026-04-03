@@ -1,0 +1,100 @@
+# - Prometheus / Grafana: 기본 (GPU 없이도 `docker compose up -d` 가능)
+# - DCGM 스택: GPU + NVIDIA Container Toolkit 있는 Linux에서만
+#   docker compose --profile gpu up -d
+# - 관리자 비밀번호: 프로젝트 루트에 `.env` 복사 (`.env.example` 참고)
+#
+# Hub: https://hub.docker.com/r/nvidia/dcgm
+# Hub: https://hub.docker.com/r/nvidia/dcgm-exporter
+
+services:
+  loki:
+    image: grafana/loki:3.1.1
+    container_name: loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/config.yml:/etc/loki/config.yml:ro
+      - loki-data:/loki
+    command:
+      - -config.file=/etc/loki/config.yml
+
+  alloy:
+    image: grafana/alloy:v1.3.1
+    container_name: alloy
+    restart: unless-stopped
+    ports:
+      - "12345:12345"
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+      - run
+      - /etc/alloy/config.alloy
+    depends_on:
+      - loki
+      - prometheus
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+      - --web.enable-remote-write-receiver
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+    depends_on:
+      - loki
+      - prometheus
+
+  dcgm:
+    profiles: [gpu]
+    image: nvidia/dcgm:4.5.2-1-ubuntu22.04
+    container_name: dcgm
+    restart: unless-stopped
+    ports:
+      - "5555:5555"
+    cap_add:
+      - SYS_ADMIN
+    gpus: all
+
+  dcgm-exporter:
+    profiles: [gpu]
+    image: nvidia/dcgm-exporter:4.5.2-4.8.1-distroless
+    container_name: dcgm-exporter
+    restart: unless-stopped
+    depends_on:
+      - dcgm
+    ports:
+      - "9400:9400"
+    cap_add:
+      - SYS_ADMIN
+    gpus: all
+    environment:
+      DCGM_REMOTE_HOSTENGINE_INFO: "dcgm:5555"
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  loki-data:

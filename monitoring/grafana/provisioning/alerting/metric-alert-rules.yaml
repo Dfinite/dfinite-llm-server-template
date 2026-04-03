@@ -1,0 +1,181 @@
+apiVersion: 1
+
+# 메트릭 기반 알림 규칙 (Prometheus)
+# 수신처(contact point)는 contact-points.yaml 에서 설정합니다.
+#
+# 임계값 근거:
+#   GPU 온도 80°C — NVIDIA 데이터센터 GPU 스로틀링 직전 구간
+#   KV 캐시 90%  — 포화 시 신규 요청 처리 불가 또는 abort 발생
+#   abort > 0    — KV 캐시 포화로 인한 요청 강제 중단 (즉각 조치 필요)
+
+groups:
+  - orgId: 1
+    name: metric-alerts
+    folder: Monitoring Alerts
+    interval: 1m
+    rules:
+
+      # ── 규칙 1: GPU 온도 ─────────────────────────────────────────────────
+      - uid: gpu-temp-threshold
+        title: "GPU 온도 임계 초과 (> 80°C)"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: "max(DCGM_FI_DEV_GPU_TEMP)"
+              instant: false
+              range: true
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [80]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "GPU 온도 80°C 초과"
+          description: "GPU 최고 온도가 80°C를 초과했습니다. 스로틀링이 시작될 수 있습니다."
+        labels:
+          severity: warning
+          source: prometheus
+          target: gpu
+        isPaused: false
+
+      # ── 규칙 2: KV 캐시 포화 ────────────────────────────────────────────
+      - uid: vllm-kv-cache-saturation
+        title: "vLLM KV 캐시 포화 (> 90%)"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: 'max(vllm:gpu_cache_usage_perc{model_name=~".+"})'
+              instant: false
+              range: true
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0.9]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: "vLLM KV 캐시 90% 초과"
+          description: "KV 캐시 사용률이 90%를 초과했습니다. 신규 요청 처리가 지연되거나 abort가 발생할 수 있습니다."
+        labels:
+          severity: warning
+          source: prometheus
+          target: vllm
+        isPaused: false
+
+      # ── 규칙 3: 요청 abort 발생 ──────────────────────────────────────────
+      - uid: vllm-request-abort
+        title: "vLLM 요청 abort 발생"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: 'sum(rate(vllm:request_success_total{finished_reason="abort",model_name=~".+"}[5m]))'
+              instant: false
+              range: true
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: "vLLM 요청 abort 발생"
+          description: "vLLM에서 요청이 강제 중단(abort)되고 있습니다. KV 캐시 포화 여부를 확인하세요."
+        labels:
+          severity: critical
+          source: prometheus
+          target: vllm
+        isPaused: false

@@ -1,0 +1,54 @@
+// Alloy unified collection:
+// - Metrics scrape: dcgm-exporter, vLLM, prometheus self
+// - Logs collect: docker containers
+// - Logs sink: Loki
+// - Metrics sink: Prometheus remote_write receiver
+
+prometheus.exporter.self "alloy" {}
+
+prometheus.scrape "metrics" {
+  targets = concat(
+    prometheus.exporter.self.alloy.targets,
+    [
+      { __address__ = "dcgm-exporter:9400", job = "dcgm-exporter" },
+      { __address__ = "172.17.0.1:30071", job = "vllm", service = "qwen-demo" },
+      { __address__ = "172.17.0.1:30072", job = "vllm", service = "embedding-women" },
+      { __address__ = "prometheus:9090", job = "prometheus" },
+    ],
+  )
+
+  scrape_interval = "15s"
+  forward_to      = [prometheus.remote_write.default.receiver]
+}
+
+prometheus.remote_write "default" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.containers.targets
+  forward_to = [loki.process.docker.receiver]
+}
+
+loki.process "docker" {
+  stage.static_labels {
+    values = {
+      job = "docker",
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

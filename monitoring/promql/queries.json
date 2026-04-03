@@ -1,0 +1,64 @@
+{
+  "description": "dcgm-exporter 기본 counter 기준 PromQL 소스. 문서 생성: make promql-doc",
+
+  "metrics_table": [
+    { "purpose": "GPU 사용률", "metric": "DCGM_FI_DEV_GPU_UTIL", "unit": "%" },
+    { "purpose": "GPU 온도", "metric": "DCGM_FI_DEV_GPU_TEMP", "unit": "°C" },
+    { "purpose": "VRAM 사용량", "metric": "DCGM_FI_DEV_FB_USED", "unit": "MiB" },
+    { "purpose": "전력", "metric": "DCGM_FI_DEV_POWER_USAGE", "unit": "W" }
+  ],
+
+  "label_table": [
+    { "label": "gpu", "meaning": "GPU 인덱스 (문자열 `\"0\"`, `\"1\"` …)" },
+    { "label": "UUID", "meaning": "GPU UUID" },
+    { "label": "device", "meaning": "노출되는 경우 디바이스 식별자" },
+    { "label": "modelName, Hostname 등", "meaning": "환경·템플릿에 따라 존재" }
+  ],
+
+  "label_examples": [
+    { "title": "한 GPU만 보기", "promql": "DCGM_FI_DEV_GPU_UTIL{gpu=\"0\"}" },
+    { "title": "UUID로 고정", "promql": "DCGM_FI_DEV_GPU_UTIL{UUID=\"GPU-xxxx\"}" },
+    { "title": "호스트·모델로 좁히기 (라벨이 있을 때)", "promql": "DCGM_FI_DEV_GPU_UTIL{modelName=~\".*L40S.*\"}" }
+  ],
+
+  "panels": [
+    {
+      "title": "GPU utilization (%)",
+      "blocks": [
+        { "promql": "DCGM_FI_DEV_GPU_UTIL", "note": null },
+        { "promql": "DCGM_FI_DEV_GPU_UTIL{job=\"dcgm-exporter\"}", "note": "특정 인스턴스만 (Prometheus가 붙인 `job`, `instance` 등)" }
+      ]
+    },
+    {
+      "title": "GPU temperature (°C)",
+      "blocks": [{ "promql": "DCGM_FI_DEV_GPU_TEMP", "note": null }]
+    },
+    {
+      "title": "GPU memory used (MiB)",
+      "blocks": [
+        { "promql": "DCGM_FI_DEV_FB_USED", "note": null },
+        {
+          "promql": "100 * DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE)",
+          "note": "**사용률(%)** — 직접 필드가 없으면 사용량·여유로 계산 (둘 다 MiB일 때). 분모 0 등은 환경에 따라 `clamp_min` 등으로 보정 가능."
+        }
+      ]
+    },
+    {
+      "title": "GPU power (W)",
+      "blocks": [{ "promql": "DCGM_FI_DEV_POWER_USAGE", "note": null }]
+    }
+  ],
+
+  "checklist_rows": [
+    { "panel": "Utilization", "promql": "DCGM_FI_DEV_GPU_UTIL" },
+    { "panel": "Temperature", "promql": "DCGM_FI_DEV_GPU_TEMP" },
+    { "panel": "Memory (used)", "promql": "DCGM_FI_DEV_FB_USED" },
+    { "panel": "Power", "promql": "DCGM_FI_DEV_POWER_USAGE" }
+  ],
+
+  "references": [
+    { "label": "dcgm-exporter default-counters.csv", "url": "https://github.com/NVIDIA/dcgm-exporter/blob/main/etc/default-counters.csv" },
+    { "label": "문서 06 (Alloy — dcgm-exporter)", "url": "./06-alloy-dcgm-exporter.md" },
+    { "label": "문서 07 (Prometheus)", "url": "./07-prometheus-setup.md" }
+  ]
+}

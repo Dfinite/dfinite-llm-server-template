@@ -1,0 +1,49 @@
+apiVersion: 1
+
+# 알림 수신처 (Contact Points)
+# 사용할 채널의 주석을 해제하고 값을 입력한 뒤 grafana 컨테이너를 재시작합니다:
+#   docker compose restart grafana
+#
+# 수신처 적용 후 Grafana UI → Alerting → Notification policies 에서
+# 라우팅 정책을 확인·수정할 수 있습니다.
+
+# contactPoints:
+
+  # ── Slack ─────────────────────────────────────────────────────────────
+  # - orgId: 1
+  #   name: slack-alerts
+  #   receivers:
+  #     - uid: slack-receiver
+  #       type: slack
+  #       settings:
+  #         url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+  #         channel: "#alerts"
+  #         username: "Grafana"
+  #         title: |
+  #           {{ if eq .Status "firing" }}🔴{{ else }}✅{{ end }}
+  #           {{ .CommonLabels.alertname }}
+  #         text: "{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}"
+  #       disableResolveMessage: false
+
+  # ── 이메일 ──────────────────────────────────────────────────────────────
+  # SMTP 설정이 grafana.ini 또는 GF_SMTP_* 환경변수로 구성되어 있어야 합니다.
+  # - orgId: 1
+  #   name: email-alerts
+  #   receivers:
+  #     - uid: email-receiver
+  #       type: email
+  #       settings:
+  #         addresses: "admin@example.com"
+  #         subject: "[Alert] {{ .CommonLabels.alertname }}"
+  #       disableResolveMessage: false
+
+  # ── Webhook (범용) ───────────────────────────────────────────────────────
+  # - orgId: 1
+  #   name: webhook-alerts
+  #   receivers:
+  #     - uid: webhook-receiver
+  #       type: webhook
+  #       settings:
+  #         url: "https://your-webhook-endpoint/alert"
+  #         httpMethod: POST
+  #       disableResolveMessage: false
