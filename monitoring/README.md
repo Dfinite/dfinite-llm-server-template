@@ -55,32 +55,23 @@ Docker logs ─────────────────┘              
 
 ---
 
-## vLLM 서비스 연동 설정
+## vLLM 서비스 연동
 
-메인 프로젝트(`services.json`)에 등록된 vLLM 서비스 포트를 Alloy 수집 타깃에 반영해야 합니다.
+`manage_compose.py`로 서비스를 등록하면 **자동으로 연동**됩니다. `alloy/config.alloy`를 직접 수정할 필요가 없습니다.
 
-**1. 현재 등록된 서비스 포트 확인**
+`manage_compose.py add` 실행 시 생성된 vLLM 컨테이너에 아래 레이블이 자동으로 붙습니다:
 
-```bash
-# 프로젝트 루트에서
-./scripts/manage_compose.py list
+```yaml
+labels:
+  monitoring.scrape: "true"
+  monitoring.port: "<서비스포트>"
+  monitoring.job: "vllm"
+  monitoring.service: "<서비스명>"
 ```
 
-**2. `alloy/config.alloy` 에서 vLLM 타깃 포트 수정**
+Alloy는 Docker 소켓으로 이 레이블이 달린 컨테이너를 자동 감지하여 scrape 대상에 포함합니다. 서비스를 추가하거나 삭제해도 모니터링 설정 변경 없이 자동 반영됩니다.
 
-```alloy
-// alloy/config.alloy
-prometheus.scrape "vllm" {
-  targets = [
-    // services.json 등록 포트에 맞게 수정
-    {"__address__" = "172.17.0.1:<서비스포트>", "service" = "<서비스명>"},
-  ]
-  ...
-}
-```
-
-> **참고**: `172.17.0.1` 은 Linux Docker 기본 게이트웨이 IP입니다. 환경에 따라 다를 수 있습니다.  
-> macOS 또는 rootless Docker 환경에서는 `docker run --rm alpine ip route` 로 실제 게이트웨이 IP를 확인하세요.
+두 스택은 `llm-net` Docker 네트워크를 공유하므로 Alloy가 컨테이너명으로 vLLM에 직접 접근합니다.
 
 ---
 

@@ -18,7 +18,7 @@ Python 표준 [`logging`](https://docs.python.org/3/library/logging.html) 모듈
 
 ## 목표
 
-- [ ] 레벨별 의미와 `logger.*` 호출을 맞춰 사용한다
+- [x] 레벨별 의미와 `logger.*` 호출을 맞춰 사용한다
 - [x] ERROR·CRITICAL만 알림으로 보내는 정책을 팀·Grafana 규칙과 일치시킨다
 - [x] Grafana 알림 규칙을 프로비저닝 파일로 사전 설정한다 (`grafana/provisioning/alerting/`)
 - [x] Loki·LogQL로 해당 레벨만 필터링하는 방법은 [4번](./04-logql-queries.md)과 연계한다

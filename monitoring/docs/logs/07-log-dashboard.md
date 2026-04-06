@@ -10,10 +10,10 @@
 
 ## 목표
 
-- [ ] 로그 대시보드가 Grafana에서 로드·표시됨
-- [ ] ERROR·CRITICAL 스트림 패널이 정상 표시됨
-- [ ] WARNING 이상 조회용 패널이 정상 표시됨
-- [ ] 컨테이너별 발생률 timeseries 패널이 표시됨
+- [x] 로그 대시보드가 Grafana에서 로드·표시됨
+- [x] ERROR·CRITICAL 스트림 패널이 정상 표시됨
+- [x] WARNING 이상 조회용 패널이 정상 표시됨
+- [x] 컨테이너별 발생률 timeseries 패널이 표시됨
 
 ---
 

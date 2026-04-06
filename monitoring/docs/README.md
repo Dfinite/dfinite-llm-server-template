@@ -19,11 +19,13 @@
 데이터 흐름 요약:
 
 ```
-dcgm → dcgm-exporter(:9400) ──────────────────────────────┐
-vLLM(:30071, service=qwen-demo) ──────────────────────────┼─ scrape → Alloy ─ remote_write → Prometheus(:9090) ─┐
-vLLM(:30072, service=embedding-women) ────────────────────┘              └─ push ──→ Loki(:3100) ───────────────┼→ Grafana(:3000)
-Docker 로그 ──────────────────────────────────────────────────────────────────────────────────────────────────────┘
+dcgm → dcgm-exporter(:9400) ───────────────────────────────────────────────────┐
+vLLM(monitoring.scrape=true 레이블) ─ Docker label discovery ──────────────────┼─ scrape → Alloy ─ remote_write → Prometheus(:9090) ─┐
+Docker 로그 ───────────────────────────────────────────────────────────────────┤              └─ push ──→ Loki(:3100) ────────────────┼→ Grafana(:3000)
+                                                                                └─────────────────────────────────────────────────────┘
 ```
+
+vLLM 컨테이너는 `llm-net` 공유 네트워크로 Alloy와 직접 통신합니다. `manage_compose.py add` 시 레이블이 자동 삽입되므로 서비스 추가/삭제 시 `alloy/config.alloy` 수정이 불필요합니다.
 
 ---
 
@@ -75,8 +77,10 @@ Docker 로그 ──────────────────────
 ### 4) 통합 화면·추후 검토
 
 - [dashboards/01 — 통합 대시보드](dashboards/01-integrated-dashboard.md)
-- [dashboards/02 — 로그 모니터링 대시보드](dashboards/02-log-dashboard.md)
-- [future/01 — 프로파일링·분산 트레이스](future/01-future-profiling-and-distributed-tracing.md)
+- [logs/07 — 로그 모니터링 대시보드](logs/07-log-dashboard.md)
+- [overview/02 — 모니터링-메인 프로젝트 통합 구현](overview/02-monitoring-integration-plan.md)
+- [future/01 — 메모리 제한](future/01-future-memory-limits.md)
+- [future/02 — 프로파일링·분산 트레이스](future/02-future-profiling-and-distributed-tracing.md)
 
 ---
 
@@ -87,6 +91,7 @@ Docker 로그 ──────────────────────
 | # | 문서 |
 |---|------|
 | 01 | [Alloy 통합 수집 아키텍처](overview/01-alloy-unified-collection-architecture.md) |
+| 02 | [모니터링-메인 프로젝트 통합 구현](overview/02-monitoring-integration-plan.md) |
 
 ### 메트릭 — GPU (`metrics/gpu/`)
 
@@ -123,16 +128,17 @@ Docker 로그 ──────────────────────
 | 04 | [LogQL 쿼리 레퍼런스](logs/04-logql-queries.md) |
 | 05 | [Grafana Loki 데이터소스](logs/05-grafana-loki-datasource.md) |
 | 06 | [로그 레벨·알림 정책](logs/06-log-levels-and-alerting.md) |
+| 07 | [로그 모니터링 대시보드](logs/07-log-dashboard.md) |
 
 ### 대시보드 (`dashboards/`)
 
 | # | 문서 |
 |---|------|
 | 01 | [통합 모니터링 대시보드](dashboards/01-integrated-dashboard.md) |
-| 02 | [로그 모니터링 대시보드](dashboards/02-log-dashboard.md) |
 
 ### 추후 (`future/`)
 
 | # | 문서 |
 |---|------|
-| 01 | [추후 고려: 프로파일링·트레이스](future/01-future-profiling-and-distributed-tracing.md) |
+| 01 | [추후 고려: 메모리 제한](future/01-future-memory-limits.md) |
+| 02 | [추후 고려: 프로파일링·트레이스](future/02-future-profiling-and-distributed-tracing.md) |

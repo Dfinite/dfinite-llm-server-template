@@ -7,8 +7,8 @@
 ## 목표
 
 - [x] Loki 데이터소스 **provisioning** 파일이 레포에 포함됨 (`grafana/provisioning/datasources/loki.yaml`)
-- [ ] Grafana **Connections → Data sources → Loki** 에서 **Save & test** 성공 (실제 기동·네트워크 전제)
-- [ ] Explore에서 **LogQL** 조회 동작 확인
+- [x] Grafana **Connections → Data sources → Loki** 에서 **Save & test** 성공
+- [x] Explore에서 **LogQL** 조회 동작 확인
 
 ---
 

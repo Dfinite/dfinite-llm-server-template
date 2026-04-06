@@ -39,14 +39,13 @@ GPU·vLLM 메트릭은 exporter가 **노출**하고, **수집(scrape)** 은 Allo
 ```
 dcgm → dcgm-exporter(:9400/metrics) ──scrape──► Alloy(:12345) ──remote_write──► Prometheus(:9090) ──► Grafana(:3000)
 
-호스트 vLLM(:30071, service=qwen-demo)      ──scrape──► Alloy ──remote_write──► Prometheus ──► Grafana
-호스트 vLLM(:30072, service=embedding-women) ──scrape──► Alloy ──remote_write──► Prometheus ──► Grafana
+vLLM 컨테이너(monitoring.scrape=true 레이블) ──Docker label discovery──► Alloy ──remote_write──► Prometheus ──► Grafana
 
 컨테이너 로그 ──tail──► Alloy ──push──► Loki(:3100) ──► Grafana(:3000)
 ```
 
 - **GPU**: [GPU-06 — Alloy·dcgm-exporter 연동](../metrics/gpu/06-alloy-dcgm-exporter.md) — Alloy 타깃 `dcgm-exporter:9400`.
-- **vLLM**: [vLLM-01 — 메트릭 수집](../metrics/vllm/01-vllm-metrics-collection.md) — Alloy 타깃 `172.17.0.1:30071` (`service=qwen-demo`), `172.17.0.1:30072` (`service=embedding-women`). `job="vllm"` 공통, `service` 라벨로 인스턴스 구분.
+- **vLLM**: [vLLM-01 — 메트릭 수집](../metrics/vllm/01-vllm-metrics-collection.md) — `manage_compose.py`가 생성한 컨테이너 레이블(`monitoring.scrape=true`)을 Alloy가 Docker 소켓으로 자동 감지. `job="vllm"` 공통, `service` 라벨로 인스턴스 구분. [개요-02 — 통합 구현](../overview/02-monitoring-integration-plan.md) 참고.
 
 ### Prometheus 역할 (현재)
 
@@ -62,7 +61,7 @@ dcgm → dcgm-exporter(:9400/metrics) ──scrape──► Alloy(:12345) ──
 |------|-------------------------------|-------------------|
 | **누가 `/metrics`를 긁는가** | Prometheus `scrape_configs` | **Alloy** scrape |
 | **dcgm / dcgm-exporter** | 변경 없음 — 노출 층 유지 | 동일 (스택 유지) |
-| **vLLM 타깃** | `172.17.0.1:30071/30072` | 동일, `service` 라벨로 인스턴스 구분 |
+| **vLLM 타깃** | `172.17.0.1:30071/30072` | Docker 레이블 기반 자동 발견 (`monitoring.scrape=true`) |
 | **Prometheus scrape** | 활성 | **비활성·축소** — 이중 scrape 방지 |
 | **Prometheus 역할** | scrape + 저장 + 쿼리 | **저장·쿼리** 중심 (remote_write 수신) |
 | **로그 수집** | 미포함 | Alloy tail → Loki push |
