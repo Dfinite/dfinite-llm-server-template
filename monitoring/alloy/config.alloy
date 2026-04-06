@@ -1,22 +1,64 @@
 // Alloy unified collection:
-// - Metrics scrape: dcgm-exporter, vLLM, prometheus self
+// - Metrics scrape: dcgm-exporter, vLLM (Docker label discovery), prometheus self
 // - Logs collect: docker containers
 // - Logs sink: Loki
 // - Metrics sink: Prometheus remote_write receiver
 
 prometheus.exporter.self "alloy" {}
 
+// ── Static targets: DCGM, Prometheus ──
 prometheus.scrape "metrics" {
   targets = concat(
     prometheus.exporter.self.alloy.targets,
     [
       { __address__ = "dcgm-exporter:9400", job = "dcgm-exporter" },
-      { __address__ = "172.17.0.1:30071", job = "vllm", service = "qwen-demo" },
-      { __address__ = "172.17.0.1:30072", job = "vllm", service = "embedding-women" },
-      { __address__ = "prometheus:9090", job = "prometheus" },
+      { __address__ = "prometheus:9090",    job = "prometheus" },
     ],
   )
 
+  scrape_interval = "15s"
+  forward_to      = [prometheus.remote_write.default.receiver]
+}
+
+// ── vLLM: Docker label-based auto-discovery ──
+// manage_compose.py가 생성한 vLLM 컨테이너의 레이블을 감지합니다.
+// 레이블 예시: monitoring.scrape=true, monitoring.port=10071, monitoring.service=my-llm
+discovery.docker "vllm" {
+  host = "unix:///var/run/docker.sock"
+  filter {
+    name   = "label"
+    values = ["monitoring.scrape=true"]
+  }
+}
+
+discovery.relabel "vllm" {
+  targets = discovery.docker.vllm.targets
+
+  // /vllm-my-llm → vllm-my-llm (leading slash 제거)
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "__tmp_container_name"
+    replacement   = "$1"
+  }
+  // vllm-my-llm + 10071 → vllm-my-llm:10071
+  rule {
+    source_labels = ["__tmp_container_name", "__meta_docker_container_label_monitoring_port"]
+    separator     = ":"
+    target_label  = "__address__"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_monitoring_job"]
+    target_label  = "job"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_monitoring_service"]
+    target_label  = "service"
+  }
+}
+
+prometheus.scrape "vllm" {
+  targets         = discovery.relabel.vllm.output
   scrape_interval = "15s"
   forward_to      = [prometheus.remote_write.default.receiver]
 }
@@ -27,6 +69,7 @@ prometheus.remote_write "default" {
   }
 }
 
+// ── Log collection ──
 discovery.docker "containers" {
   host = "unix:///var/run/docker.sock"
 }

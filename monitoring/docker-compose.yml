@@ -42,6 +42,9 @@ services:
         condition: service_healthy
       prometheus:
         condition: service_healthy
+    networks:
+      - default
+      - llm-net
 
   prometheus:
     image: prom/prometheus:v2.52.0
@@ -127,3 +130,7 @@ volumes:
   prometheus-data:
   grafana-data:
   loki-data:
+
+networks:
+  llm-net:
+    external: true

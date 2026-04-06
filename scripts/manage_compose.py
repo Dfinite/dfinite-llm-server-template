@@ -176,6 +176,13 @@ def build_service_block(name: str, service_type: str, config_name: str,
               capabilities: [gpu]
     command: >-
 {cmd_formatted}
+    labels:
+      monitoring.scrape: "true"
+      monitoring.port: "{port}"
+      monitoring.job: "vllm"
+      monitoring.service: "{name}"
+    networks:
+      - llm-net
     logging:
       driver: "json-file"
       options:
@@ -216,6 +223,11 @@ COMPOSE_HEADER = """\
 # 서비스 삭제: ./scripts/manage_compose.py remove <name>
 # 서비스 목록: ./scripts/manage_compose.py list
 # ═══════════════════════════════════════════════════════════════
+
+networks:
+  llm-net:
+    name: llm-net
+    driver: bridge
 
 services:
 

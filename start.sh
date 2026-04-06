@@ -120,16 +120,18 @@ ${BLUE}  vLLM Server Start Script${NC}
 ${BLUE}═══════════════════════════════════════════════════════════════${NC}
 
 ${CYAN}사용법:${NC}
-    $0 [서비스명...]           등록된 서비스 시작 (전체 또는 지정)
-    $0 --list, -l              등록된 서비스 목록
-    $0 --follow, -f [서비스...]  foreground 모드
-    $0 --help, -h              이 도움말
+    $0 [서비스명...]                등록된 서비스 시작 (전체 또는 지정)
+    $0 --list, -l                   등록된 서비스 목록
+    $0 --follow, -f [서비스...]     foreground 모드
+    $0 --with-monitoring            모니터링 스택 함께 기동
+    $0 --help, -h                   이 도움말
 
 ${CYAN}예시:${NC}
-    $0                          # 전체 시작
-    $0 my-llm                   # 특정 서비스만 시작
-    $0 my-llm reranker-women    # 여러 서비스 시작
-    $0 -f my-llm                # foreground 모드
+    $0                              # 전체 시작
+    $0 my-llm                       # 특정 서비스만 시작
+    $0 my-llm reranker-women        # 여러 서비스 시작
+    $0 -f my-llm                    # foreground 모드
+    $0 --with-monitoring            # vLLM + 모니터링 함께 시작
 
 ${CYAN}서비스 관리:${NC}
     ./scripts/manage_compose.py add <type> <config> --name <name> --port <port>
@@ -142,15 +144,17 @@ EOF
 # ── 메인 ──
 main() {
     local follow=false
+    local with_monitoring=false
     local services=()
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --help|-h)   show_help; exit 0 ;;
-            --list|-l)   check_prerequisites; list_services; exit 0 ;;
-            --follow|-f) follow=true; shift ;;
-            -*)          log_error "알 수 없는 옵션: $1"; exit 1 ;;
-            *)           services+=("$1"); shift ;;
+            --help|-h)            show_help; exit 0 ;;
+            --list|-l)            check_prerequisites; list_services; exit 0 ;;
+            --follow|-f)          follow=true; shift ;;
+            --with-monitoring)    with_monitoring=true; shift ;;
+            -*)                   log_error "알 수 없는 옵션: $1"; exit 1 ;;
+            *)                    services+=("$1"); shift ;;
         esac
     done
 
@@ -210,6 +214,17 @@ main() {
             echo -e "${GREEN}  ${svc}: http://localhost:${port}${NC}"
         done
         echo ""
+    fi
+
+    # 모니터링 스택 기동
+    if [[ "$with_monitoring" == true ]]; then
+        log_info "모니터링 스택 기동 중..."
+        if command -v nvidia-smi &> /dev/null; then
+            docker compose -f "$SCRIPT_DIR/monitoring/docker-compose.yml" --profile gpu up -d
+        else
+            docker compose -f "$SCRIPT_DIR/monitoring/docker-compose.yml" up -d
+        fi
+        log_info "Grafana: http://localhost:3000"
     fi
 }
 

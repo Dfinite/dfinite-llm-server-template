@@ -100,6 +100,41 @@ export HF_TOKEN="hf_..."
 ./scripts/manage_compose.py list
 ```
 
+### 8. 모니터링 (선택)
+
+GPU·vLLM 메트릭과 컨테이너 로그를 Grafana 대시보드로 확인합니다.
+
+```bash
+cd monitoring
+cp .env.example .env
+# .env 편집: GRAFANA_ADMIN_PASSWORD 변경
+cd ..
+```
+
+vLLM과 함께 기동:
+
+```bash
+./start.sh --with-monitoring
+```
+
+또는 별도 기동:
+
+```bash
+# GPU 서버
+docker compose -f monitoring/docker-compose.yml --profile gpu up -d
+
+# GPU 없는 환경
+docker compose -f monitoring/docker-compose.yml up -d
+```
+
+접속: `http://<호스트>:3000` (Grafana)
+
+모니터링 종료:
+
+```bash
+docker compose -f monitoring/docker-compose.yml down
+```
+
 ---
 
 ## 디렉토리 구조
