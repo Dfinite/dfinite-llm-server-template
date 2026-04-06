@@ -60,7 +60,11 @@ status() {
         return
     fi
 
+    # 등록된 서비스명 수집
+    local registered_names=()
+
     while IFS=' ' read -r name port stype; do
+        registered_names+=("$name")
         echo -e "  ${CYAN}[${name}]${NC} (${stype}, port ${port})"
         local running=$(docker compose ps -q "$name" 2>/dev/null)
         if [[ -n "$running" ]] && docker inspect --format '{{.State.Status}}' $running 2>/dev/null | grep -q "running"; then
@@ -75,6 +79,31 @@ status() {
         fi
         echo ""
     done < <(get_all_services)
+
+    # ── 미등록 컨테이너 (이전 설정으로 실행 중인 것) ──
+    local orphans
+    orphans=$(docker compose ps --format '{{.Name}} {{.Status}}' 2>/dev/null | while read -r cname cstatus; do
+        local is_registered=false
+        for rname in "${registered_names[@]}"; do
+            if [[ "$cname" == "vllm-${rname}" ]]; then
+                is_registered=true
+                break
+            fi
+        done
+        if [[ "$is_registered" == false ]]; then
+            echo "$cname $cstatus"
+        fi
+    done)
+
+    if [[ -n "$orphans" ]]; then
+        echo -e "  ${YELLOW}[미등록 컨테이너]${NC}"
+        echo -e "  ${YELLOW}  services.json에 없지만 실행 중인 컨테이너:${NC}"
+        while read -r cname cstatus; do
+            echo -e "  ${YELLOW}●${NC} ${cname}: ${cstatus}"
+        done <<< "$orphans"
+        echo -e "  ${YELLOW}  정리: docker compose down --remove-orphans${NC}"
+        echo ""
+    fi
 
     # ── GPU 상태 ──
     echo -e "  ${CYAN}[GPU]${NC}"
