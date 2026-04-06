@@ -141,7 +141,8 @@ ${CYAN}명령어:${NC}
 
 ${CYAN}예시:${NC}
     $0                      # 전체 종료
-    $0 stop my-llm          # 특정 서비스만 종료
+    $0 my-llm               # 특정 서비스만 종료
+    $0 stop my-llm          # 위와 동일
     $0 status               # 상태 확인
     $0 logs my-llm          # 특정 서비스 로그
     $0 restart my-llm       # 특정 서비스 재시작
@@ -179,7 +180,7 @@ main() {
             fi
             log_info "재시작 완료"
             ;;
-        stop|*)
+        stop)
             if [[ -n "$target" ]]; then
                 log_info "${target} 서비스 종료..."
                 docker compose stop "$target"
@@ -195,6 +196,13 @@ main() {
                     log_info "종료 완료"
                 fi
             fi
+            ;;
+        *)
+            # 알 수 없는 명령어는 서비스명으로 처리
+            log_info "${cmd} 서비스 종료..."
+            docker compose stop "$cmd"
+            docker compose rm -f "$cmd"
+            log_info "${cmd} 종료 완료"
             ;;
     esac
 }
