@@ -54,14 +54,13 @@ status() {
 
     cd "$SCRIPT_DIR"
 
-    if [[ ! -f "$REGISTRY" ]]; then
-        echo "  등록된 서비스 없음"
-        echo ""
-        return
-    fi
-
     # 등록된 서비스명 수집
     local registered_names=()
+
+    if [[ ! -f "$REGISTRY" ]]; then
+        echo "  등록된 서비스 없음 (services.json 미존재)"
+        echo ""
+    fi
 
     while IFS=' ' read -r name port stype; do
         registered_names+=("$name")
