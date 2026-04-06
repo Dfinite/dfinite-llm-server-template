@@ -16,3 +16,6 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Claude Code
+CLAUDE.md
