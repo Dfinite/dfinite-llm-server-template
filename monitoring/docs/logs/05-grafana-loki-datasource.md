@@ -66,16 +66,20 @@ Grafana 로그 전용 대시보드: **Dashboards → 로그 모니터링** (UID:
 |------|-----|
 | 데이터소스명 | Loki |
 | URL (설정상) | `http://loki:3100` |
-| Save & test | 검증 후 기입 |
+| Save & test | ✅ Data source connected and labels found |
 | Explore LogQL | `{job="docker"}` 로그 조회 확인 |
 
 ---
 
 ## 참고
 
+| 문서 | 내용 |
+|------|------|
+| [01 — Alloy 로그 수집](./01-alloy-log-setup.md) | Alloy 로그 파이프라인 설정 |
+| [03 — Alloy·Loki 연동](./03-alloy-loki-integration.md) | 연동 확인 |
+| [04 — LogQL 쿼리](./04-logql-queries.md) | LogQL 쿼리 레퍼런스 |
+| [06 — 로그 레벨·알림 정책](./06-log-levels-and-alerting.md) | ERROR 이상 알림 정책 |
+| [GPU-11 — Grafana Prometheus 데이터소스](../metrics/gpu/11-grafana-prometheus-datasource.md) | GPU·vLLM 메트릭 데이터소스 |
+
 - [Grafana provisioning](https://grafana.com/docs/grafana/latest/administration/provisioning/)
 - [Grafana Loki 데이터소스](https://grafana.com/docs/grafana/latest/datasources/loki/)
-- 문서 [01 (Alloy 로그 수집 기능 활성화)](./01-alloy-log-setup.md), [03 (Alloy·Loki 연동 확인)](./03-alloy-loki-integration.md)
-- 문서 [04 (LogQL 쿼리)](./04-logql-queries.md)
-- 문서 [06 (로그 레벨·알림 정책)](./06-log-levels-and-alerting.md)
-- Prometheus 데이터소스 (GPU·vLLM 메트릭용): [metrics/gpu/11](../metrics/gpu/11-grafana-prometheus-datasource.md)

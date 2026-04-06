@@ -14,9 +14,9 @@ Alloy가 **dcgm-exporter**를 scrape하도록 설정하고, (선행으로 띄운
 
 ## 목표
 
-- [ ] [`alloy/config.alloy`](../../../alloy/config.alloy)에 dcgm-exporter scrape 타깃(`:9400`, `job=dcgm-exporter`)이 정의되어 있음을 확인한다
-- [ ] GPU 프로필로 dcgm-exporter가 떠 있는 상태에서 Alloy scrape·[7번](./07-prometheus-setup.md) Prometheus 적재를 확인한다
-- [ ] PromQL로 `DCGM_FI_DEV_GPU_UTIL` 등 GPU 시계열을 조회한다
+- [x] [`alloy/config.alloy`](../../../alloy/config.alloy)에 dcgm-exporter scrape 타깃(`:9400`, `job=dcgm-exporter`)이 정의되어 있음을 확인한다
+- [x] GPU 프로필로 dcgm-exporter가 떠 있는 상태에서 Alloy scrape·[7번](./07-prometheus-setup.md) Prometheus 적재를 확인한다
+- [x] PromQL로 `DCGM_FI_DEV_GPU_UTIL` 등 GPU 시계열을 조회한다
 
 ---
 
@@ -83,7 +83,12 @@ prometheus.scrape "metrics" {
 
 ## 참고
 
+| 문서 | 내용 |
+|------|------|
+| [GPU-03 — DCGM·dcgm-exporter 구축](./03-dcgm-and-dcgm-exporter-setup.md) | dcgm-exporter Docker 설정 |
+| [GPU-05 — Alloy 설정](./05-alloy-setup.md) | Alloy 메트릭 scrape·remote_write |
+| [GPU-07 — Prometheus 구축](./07-prometheus-setup.md) | Prometheus 저장·조회 |
+| [GPU-08 — GPU PromQL](./08-gpu-metrics-promql.md) | GPU PromQL 예시 |
+
 - [Prometheus configuration](https://prometheus.io/docs/prometheus/latest/configuration/configuration/)
 - [Grafana Alloy 문서](https://grafana.com/docs/alloy/latest/)
-- 문서 [03](./03-dcgm-and-dcgm-exporter-setup.md), [05](./05-alloy-setup.md), [07](./07-prometheus-setup.md)
-- GPU PromQL 예시: 문서 [08](./08-gpu-metrics-promql.md)

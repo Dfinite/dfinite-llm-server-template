@@ -125,6 +125,9 @@ DCGM_FI_DEV_POWER_USAGE
 
 ## 참고
 
+| 문서 | 내용 |
+|------|------|
+| [GPU-06 — Alloy·dcgm-exporter 연동](./06-alloy-dcgm-exporter.md) | dcgm-exporter scrape 타깃 설정 |
+| [GPU-07 — Prometheus 구축](./07-prometheus-setup.md) | Prometheus 저장·조회 |
+
 - [dcgm-exporter default-counters.csv](https://github.com/NVIDIA/dcgm-exporter/blob/main/etc/default-counters.csv)
-- [문서 06 (Alloy — dcgm-exporter)](./06-alloy-dcgm-exporter.md)
-- [문서 07 (Prometheus)](./07-prometheus-setup.md)

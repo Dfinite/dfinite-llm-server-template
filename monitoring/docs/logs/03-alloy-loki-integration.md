@@ -100,7 +100,11 @@ curl -sG "http://127.0.0.1:3100/loki/api/v1/query_range" \
 
 ## 참고
 
+| 문서 | 내용 |
+|------|------|
+| [01 — Alloy 로그 수집](./01-alloy-log-setup.md) | Alloy 로그 파이프라인 설정 |
+| [02 — Loki 구축](./02-loki-setup.md) | Loki Docker·설정 |
+| [04 — LogQL 쿼리](./04-logql-queries.md) | LogQL 쿼리 레퍼런스 |
+
 - [Loki HTTP API](https://grafana.com/docs/loki/latest/reference/loki-http-api/)
 - [Grafana Alloy — loki.source.docker](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.docker/)
-- 문서 [01 (Alloy 로그 수집 기능 활성화)](./01-alloy-log-setup.md), [02 (Loki 구축)](./02-loki-setup.md)
-- LogQL 쿼리 레퍼런스: [04 — LogQL](./04-logql-queries.md)

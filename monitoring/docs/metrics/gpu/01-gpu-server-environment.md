@@ -17,7 +17,7 @@ GPU 메트릭 수집을 시작하기 전, 서버에서 GPU·컨테이너 관련 
 |------|-----|
 | 호스트명 | `gpuserver` |
 | 확인 계정 | `dfinite` |
-| 확인 일시 | 2026-03-20 (캡처 기준) |
+| 확인 일시 | 2026-03-20 |
 
 ---
 
@@ -37,10 +37,6 @@ nvidia-smi
 | GPU 모델 | NVIDIA L40S ×2 |
 | Driver Version | 570.172.08 |
 | CUDA Version | 12.8 |
-
-### 캡처
-
-캡처 파일: [`src/01-gpu-server-environment_nvidia-smi.png`](../../../src/01-gpu-server-environment_nvidia-smi.png)
 
 ---
 
@@ -106,7 +102,6 @@ libseccomp: 2.5.3
 ## 완료 조건
 
 - [x] `nvidia-smi` 정상 실행
-- [x] `nvidia-smi` 실행 결과 캡처 보관 (`src/01-gpu-server-environment_nvidia-smi.png`)
 - [x] GPU 대수, Driver Version 문서에 기록
 - [x] NVIDIA Container Toolkit: `nvidia-container-runtime` 경로·버전 확인
 

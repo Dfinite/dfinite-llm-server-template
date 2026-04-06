@@ -10,9 +10,9 @@
 
 ## 목표
 
-- [ ] Alloy 이미지·포트·[`alloy/config.alloy`](../../alloy/config.alloy) 경로 파악
-- [ ] `prometheus.scrape` · `prometheus.remote_write` 블록이 메트릭 흐름에서 하는 일 이해
-- [ ] (검증) [6번](./06-alloy-dcgm-exporter.md)·[7번](./07-prometheus-setup.md)까지 반영한 뒤 Prometheus UI에서 시계열이 보이는지 확인
+- [x] Alloy 이미지·포트·[`alloy/config.alloy`](../../alloy/config.alloy) 경로 파악
+- [x] `prometheus.scrape` · `prometheus.remote_write` 블록이 메트릭 흐름에서 하는 일 이해
+- [x] (검증) [6번](./06-alloy-dcgm-exporter.md)·[7번](./07-prometheus-setup.md)까지 반영한 뒤 Prometheus UI에서 시계열이 보이는지 확인
 
 ---
 
@@ -92,7 +92,12 @@ docker compose restart alloy
 
 ## 참고
 
+| 문서 | 내용 |
+|------|------|
+| [GPU-06 — Alloy·dcgm-exporter 연동](./06-alloy-dcgm-exporter.md) | dcgm-exporter scrape 타깃 설정 |
+| [GPU-07 — Prometheus 구축](./07-prometheus-setup.md) | Prometheus 저장·조회 |
+| [개요-01 — Alloy 통합 수집](../../overview/01-alloy-unified-collection-architecture.md) | 아키텍처 요약 |
+| [logs-01 — Alloy 로그 수집](../../logs/01-alloy-log-setup.md) | Alloy 로그 파이프라인 설정 |
+| [logs-02 — Loki 구축](../../logs/02-loki-setup.md) | Loki Docker·설정 |
+
 - [Grafana Alloy 문서](https://grafana.com/docs/alloy/latest/)
-- 아키텍처 요약: [overview — Alloy 통합 수집](../../overview/01-alloy-unified-collection-architecture.md)
-- Prometheus(저장·조회): [7번](./07-prometheus-setup.md) · dcgm 타깃: [6번](./06-alloy-dcgm-exporter.md)
-- 로그 파이프라인: [logs/01 — Alloy 로그 수집 기능](../../logs/01-alloy-log-setup.md), [logs/02 — Loki 구축](../../logs/02-loki-setup.md)

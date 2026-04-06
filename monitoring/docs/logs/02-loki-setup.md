@@ -84,7 +84,10 @@ curl -sS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3100/ready
 
 ## 참고
 
+| 문서 | 내용 |
+|------|------|
+| [01 — Alloy 로그 수집](./01-alloy-log-setup.md) | Alloy 로그 파이프라인 설정 |
+| [03 — Alloy·Loki 연동](./03-alloy-loki-integration.md) | 연동 확인 |
+| [개요-01 — Alloy 통합 수집](../overview/01-alloy-unified-collection-architecture.md) | 아키텍처 요약 |
+
 - [Loki Docker 설치](https://grafana.com/docs/loki/latest/setup/install/docker/)
-- Alloy 로그 파이프라인 설정: [1번 — Alloy 로그 수집 기능 활성화](./01-alloy-log-setup.md)
-- Alloy·Loki 연동 확인: [3번](./03-alloy-loki-integration.md)
-- 아키텍처 요약: [overview — Alloy 통합 수집](../overview/01-alloy-unified-collection-architecture.md)

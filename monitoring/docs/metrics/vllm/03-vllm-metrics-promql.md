@@ -198,5 +198,7 @@ curl -s http://localhost:30071/v1/chat/completions \
 
 ## 참고
 
-- [문서 01 (vLLM 메트릭 수집 환경 확인)](./01-vllm-metrics-collection.md)
-- [문서 GPU-08 (GPU 메트릭 PromQL)](../gpu/08-gpu-metrics-promql.md)
+| 문서 | 내용 |
+|------|------|
+| [vLLM-01 — 메트릭 수집](./01-vllm-metrics-collection.md) | vLLM 메트릭 수집 환경 확인 |
+| [GPU-08 — GPU PromQL](../gpu/08-gpu-metrics-promql.md) | GPU PromQL 쿼리 참고 |

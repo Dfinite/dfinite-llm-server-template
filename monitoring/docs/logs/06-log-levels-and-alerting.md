@@ -110,6 +110,9 @@ logger.critical("...")
 
 ## 참고
 
-- Python logging HOWTO: [Logging HOWTO](https://docs.python.org/3/howto/logging.html)
-- 문서 [4 (LogQL)](./04-logql-queries.md), [5 (Grafana Loki 데이터소스)](./05-grafana-loki-datasource.md)
+| 문서 | 내용 |
+|------|------|
+| [04 — LogQL 쿼리](./04-logql-queries.md) | LogQL 쿼리 레퍼런스 |
+| [05 — Grafana Loki 데이터소스](./05-grafana-loki-datasource.md) | Loki 데이터소스 설정 |
 
+- [Python logging HOWTO](https://docs.python.org/3/howto/logging.html)

@@ -100,12 +100,14 @@ python3 scripts/build_grafana_gpu_dashboard.py
 
 | 완료 조건 | 작성할 내용 | 상태 |
 |-----------|-------------|------|
-| GPU별 그래프 표시, 패널 표시 확인 | Grafana 대시보드 캡처 | ✅ [캡처](../../../src/09-grafana-gpu-dashboard.png) |
+| GPU별 그래프 표시, 패널 표시 확인 | Grafana 대시보드 확인 | ✅ [12.2 참조](#122-패널-구성) |
 | 시계열 그래프와 현재값 확인 가능 | 패널별 PromQL 정리 | ✅ [12.2 참조](#122-패널-구성) |
 
 ---
 
 ## 참고
 
-- 문서 [08 (PromQL 작성)](./08-gpu-metrics-promql.md)
-- 문서 [11 (Grafana — Prometheus 데이터 소스)](./11-grafana-prometheus-datasource.md)
+| 문서 | 내용 |
+|------|------|
+| [GPU-08 — GPU PromQL](./08-gpu-metrics-promql.md) | PromQL 쿼리 작성 |
+| [GPU-11 — Grafana Prometheus 데이터소스](./11-grafana-prometheus-datasource.md) | Prometheus 데이터소스 설정 |

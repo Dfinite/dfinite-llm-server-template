@@ -70,7 +70,6 @@ curl -sS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/login
 | UI | **http://localhost:3000** (또는 `http://<호스트>:3000`) |
 | 로그인 | `.env` 또는 기본 `admin` / `admin` |
 
-브라우저에서 로그인 화면·로그인 후 홈 **캡처** → 완료 조건용.
 
 ---
 
@@ -87,6 +86,9 @@ curl -sS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/login
 
 ## 참고
 
+| 문서 | 내용 |
+|------|------|
+| [GPU-07 — Prometheus 구축](./07-prometheus-setup.md) | Prometheus 저장·조회 |
+| [GPU-11 — Grafana Prometheus 데이터소스](./11-grafana-prometheus-datasource.md) | Prometheus 데이터소스 설정 |
+
 - [Grafana Docker 설치](https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/)
-- 문서 [07](./07-prometheus-setup.md) (Prometheus 저장·조회)
-- 문서 [11](./11-grafana-prometheus-datasource.md) (Prometheus 데이터 소스)

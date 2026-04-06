@@ -102,9 +102,7 @@ python3 scripts/build_grafana_vllm_dashboard.py
 
 | 완료 조건 | 작성할 내용 | 상태 |
 |-----------|-------------|------|
-| 대시보드 패널 표시 확인 | Grafana 대시보드 캡처 | ✅ 아래 참조 |
-
-![vLLM Dashboard](../../../src/vllm-dashboard-overview.png)
+| 대시보드 패널 표시 확인 | Grafana 대시보드 확인 | ✅ 프로비저닝 완료 |
 | 토큰·요청·응답시간 그래프 정상 | 패널별 PromQL 정리 | ✅ [2.2 참조](#22-패널-구성) |
 | API 환산 비용 표시 확인 | 단가 기준일 명시 | ✅ 2026-03-25 |
 
@@ -112,5 +110,7 @@ python3 scripts/build_grafana_vllm_dashboard.py
 
 ## 참고
 
-- 문서 [01 (vLLM 메트릭 수집 환경 확인)](./01-vllm-metrics-collection.md)
-- 문서 [GPU-12 (GPU 대시보드 패널 구성)](../gpu/12-gpu-grafana-dashboard.md)
+| 문서 | 내용 |
+|------|------|
+| [vLLM-01 — 메트릭 수집](./01-vllm-metrics-collection.md) | vLLM 메트릭 수집 환경 확인 |
+| [GPU-12 — GPU 대시보드](../gpu/12-gpu-grafana-dashboard.md) | GPU 대시보드 패널 구성 참고 |

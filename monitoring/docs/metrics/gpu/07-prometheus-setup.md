@@ -73,7 +73,7 @@ curl -sS http://127.0.0.1:9090/api/v1/status/runtimeinfo
 |------|-----|
 | 설정 파일 | `prometheus/prometheus.yml` |
 | 실행 명령 | `docker compose up -d prometheus alloy` |
-| 컨테이너 상태 | UP — [UI 캡처](../../../src/03-prometheus-graph-ui.png) |
+| 컨테이너 상태 | UP |
 | 접속 URL | `http://<호스트>:9090` |
 | 역할 | Alloy remote_write 수신, TSDB 저장, PromQL 조회 |
 
@@ -81,9 +81,14 @@ curl -sS http://127.0.0.1:9090/api/v1/status/runtimeinfo
 
 ## 참고
 
+| 문서 | 내용 |
+|------|------|
+| [GPU-03 — DCGM·dcgm-exporter 구축](./03-dcgm-and-dcgm-exporter-setup.md) | GPU 스택 Docker 설정 |
+| [GPU-05 — Alloy 설정](./05-alloy-setup.md) | Alloy scrape·remote_write |
+| [GPU-06 — Alloy·dcgm-exporter 연동](./06-alloy-dcgm-exporter.md) | dcgm-exporter scrape 타깃 |
+| [GPU-10 — Grafana 구축](./10-grafana-setup.md) | Grafana Docker 설정 |
+| [GPU-11 — Grafana Prometheus 데이터소스](./11-grafana-prometheus-datasource.md) | Prometheus 데이터소스 설정 |
+| [GPU-12 — GPU 대시보드](./12-gpu-grafana-dashboard.md) | GPU 모니터링 대시보드 |
+| [개요-01 — Alloy 통합 수집](../../overview/01-alloy-unified-collection-architecture.md) | Alloy 통합 아키텍처 |
+
 - [Prometheus Docker 문서](https://prometheus.io/docs/prometheus/latest/installation/#using-docker)
-- Alloy 통합 구조: [`docs/overview/01-alloy-unified-collection-architecture.md`](../../overview/01-alloy-unified-collection-architecture.md)
-- GPU 스택과 함께: `docker compose --profile gpu up -d` (문서 [03](./03-dcgm-and-dcgm-exporter-setup.md))
-- Alloy·dcgm 타깃: 문서 [5번](./05-alloy-setup.md), [6번](./06-alloy-dcgm-exporter.md)
-- Grafana: 문서 [10번](./10-grafana-setup.md)
-- Grafana Prometheus 데이터 소스·GPU 대시보드: [11번](./11-grafana-prometheus-datasource.md), [12번](./12-gpu-grafana-dashboard.md)

@@ -8,9 +8,9 @@
 
 ## 목표
 
-- [ ] 프로파일링·벤더 도구와 메트릭·트레이스의 **역할 차이**를 팀 기준으로 정리해 둠
-- [ ] 분산 트레이스 도입 시점·조건을 **체크리스트**로 보관
-- [ ] GPU 하드웨어 관측은 **메트릭(DCGM)** 우선임을 문서에 명시
+- [x] 프로파일링·벤더 도구와 메트릭·트레이스의 **역할 차이**를 팀 기준으로 정리해 둠
+- [x] 분산 트레이스 도입 시점·조건을 **체크리스트**로 보관
+- [x] GPU 하드웨어 관측은 **메트릭(DCGM)** 우선임을 문서에 명시
 
 ---
 
@@ -19,7 +19,7 @@
 | 관측 수단 | 현재 스택에서의 위치 | 본 문서 범위 |
 |-----------|----------------------|--------------|
 | **메트릭** | Prometheus + Grafana, GPU·vLLM 패널 ([통합 대시보드](../dashboards/01-integrated-dashboard.md)) | 기본 스택 — 본 문서는 **추가 검토만** |
-| **로그** | 미도입 (선택 시 Loki + Promtail / Alloy 등) | 별도 도입 시 [문서 overview-01](../overview/01-alloy-unified-collection-architecture.md)와 연계 |
+| **로그** | 도입됨 (Loki + Alloy, `docker-compose.yml`) | 본 문서 범위 외 — [문서 overview-01](../overview/01-alloy-unified-collection-architecture.md) 참고 |
 | **프로파일링** | 미도입 | **추후 검토** |
 | **분산 트레이스·스팬** | 미도입 | **추후 검토** |
 
@@ -86,7 +86,14 @@
 
 ## 완료 조건
 
-본 문서는 **설계 메모**이므로 GPU·vLLM 문서처럼 “구축 완료” 체크리스트는 두지 않습니다. 프로파일링·트레이스 중 하나를 **실제로 도입**하면 해당 항목별로 별도 문서 또는 절을 추가하는 것을 권장합니다.
+본 문서는 **설계 메모**이므로 구축 완료가 아닌 **문서 작성 완료**를 기준으로 합니다.
+
+- [x] 프로파일링·트레이스·메트릭의 역할 차이 정리
+- [x] 각 기술의 추후 검토 시점 기술
+- [x] 의사결정 체크리스트 작성
+- [x] 현재 스택(메트릭·로그) 위치 명시
+
+프로파일링·트레이스 중 하나를 **실제로 도입**하면 해당 항목별로 별도 문서 또는 절을 추가하는 것을 권장합니다.
 
 ---
 
@@ -103,12 +110,12 @@
 
 | 문서 | 내용 |
 |------|------|
-| [GPU-02](../metrics/gpu/02-gpu-metrics-sources.md) | GPU 메트릭 소스 조사, dcgm-exporter 채택 |
-| [GPU-05](../metrics/gpu/05-alloy-setup.md) | Alloy — 메트릭 scrape·remote_write |
-| [GPU-06](../metrics/gpu/06-alloy-dcgm-exporter.md) | Alloy — dcgm-exporter scrape 연동 |
-| [GPU-07](../metrics/gpu/07-prometheus-setup.md) | Prometheus Docker 구축 |
-| [vLLM-01](../metrics/vllm/01-vllm-metrics-collection.md) | vLLM `/metrics`, Alloy `vllm` 타깃 |
-| [통합 대시보드](../dashboards/01-integrated-dashboard.md) | GPU + vLLM 패널 |
-| [01 — Alloy 통합 수집 (개요)](../overview/01-alloy-unified-collection-architecture.md) | 로그·메트릭 에이전트 통합 시 메트릭 파이프라인 변화 |
-| [01 — Alloy 로그 수집 기능 활성화](../logs/01-alloy-log-setup.md) | Alloy 로그 파이프라인 설정 |
-| [02 — Loki 구축](../logs/02-loki-setup.md) | Loki Docker·설정 |
+| [GPU-02 — GPU 메트릭 소스](../metrics/gpu/02-gpu-metrics-sources.md) | GPU 메트릭 소스 조사, dcgm-exporter 채택 |
+| [GPU-05 — Alloy 설정](../metrics/gpu/05-alloy-setup.md) | Alloy 메트릭 scrape·remote_write |
+| [GPU-06 — Alloy·dcgm-exporter 연동](../metrics/gpu/06-alloy-dcgm-exporter.md) | Alloy dcgm-exporter scrape 연동 |
+| [GPU-07 — Prometheus 구축](../metrics/gpu/07-prometheus-setup.md) | Prometheus Docker 구축 |
+| [vLLM-01 — 메트릭 수집](../metrics/vllm/01-vllm-metrics-collection.md) | vLLM `/metrics`, Alloy `vllm` 타깃 |
+| [대시보드-01 — 통합 모니터링 대시보드](../dashboards/01-integrated-dashboard.md) | GPU + vLLM 패널 |
+| [개요-01 — Alloy 통합 수집](../overview/01-alloy-unified-collection-architecture.md) | 로그·메트릭 에이전트 통합 시 메트릭 파이프라인 변화 |
+| [logs-01 — Alloy 로그 수집](../logs/01-alloy-log-setup.md) | Alloy 로그 파이프라인 설정 |
+| [logs-02 — Loki 구축](../logs/02-loki-setup.md) | Loki Docker·설정 |

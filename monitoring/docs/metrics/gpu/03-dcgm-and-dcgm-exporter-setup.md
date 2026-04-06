@@ -100,4 +100,5 @@ docker compose --profile gpu down
 
 - [dcgm-exporter README (Quickstart)](https://github.com/NVIDIA/dcgm-exporter)
 - [NVIDIA DCGM Exporter 문서](https://docs.nvidia.com/datacenter/cloud-native/gpu-telemetry/dcgm-exporter.html)
-- Docker Hub: [nvidia/dcgm](https://hub.docker.com/r/nvidia/dcgm), [nvidia/dcgm-exporter](https://hub.docker.com/r/nvidia/dcgm-exporter)
+- [nvidia/dcgm (Docker Hub)](https://hub.docker.com/r/nvidia/dcgm)
+- [nvidia/dcgm-exporter (Docker Hub)](https://hub.docker.com/r/nvidia/dcgm-exporter)

@@ -195,9 +195,13 @@ sum by (container_name) (
 
 ## 참고
 
+| 문서 | 내용 |
+|------|------|
+| [01 — Alloy 로그 수집](./01-alloy-log-setup.md) | Alloy 로그 파이프라인 설정 |
+| [03 — Alloy·Loki 연동](./03-alloy-loki-integration.md) | 연동 확인 |
+| [05 — Grafana Loki 데이터소스](./05-grafana-loki-datasource.md) | Loki 데이터소스 설정 |
+| [06 — 로그 레벨·알림 정책](./06-log-levels-and-alerting.md) | ERROR 이상 알림 정책 |
+
 - [LogQL 공식 문서](https://grafana.com/docs/loki/latest/query/)
 - [LogQL 로그 쿼리](https://grafana.com/docs/loki/latest/query/log_queries/)
 - [LogQL 메트릭 쿼리](https://grafana.com/docs/loki/latest/query/metric_queries/)
-- 문서 [01 (Alloy 로그 수집 기능 활성화)](./01-alloy-log-setup.md), [03 (Alloy·Loki 연동 확인)](./03-alloy-loki-integration.md)
-- 문서 [05 (Grafana Loki 데이터소스)](./05-grafana-loki-datasource.md)
-- 문서 [06 (로그 레벨·알림 정책 — ERROR 이상 알림)](./06-log-levels-and-alerting.md)

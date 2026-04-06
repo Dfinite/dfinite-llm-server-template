@@ -33,15 +33,6 @@
 
 > Table 탭에서 현재 값, Graph 탭에서 시계열 추이를 확인할 수 있습니다.
 
-### 실행 결과 캡처
-
-| 메트릭 | 캡처 |
-|--------|------|
-| GPU Utilization | [스크린샷](../../../src/04-promql-gpu-util.png) |
-| GPU Temperature | [스크린샷](../../../src/05-promql-gpu-temp.png) |
-| GPU Memory Used | [스크린샷](../../../src/06-promql-gpu-memory.png) |
-| GPU Power | [스크린샷](../../../src/07-promql-gpu-power.png) |
-
 ---
 
 ## 9.2 GPU별 값 확인
@@ -80,8 +71,6 @@ nvidia-smi --query-gpu=index,utilization.gpu,temperature.gpu,memory.used,power.d
 
 ### 비교 결과 (2026-03-24 00:34 기준)
 
-nvidia-smi 캡처: [스크린샷](../../../src/08-nvidia-smi-comparison.png)
-
 | 메트릭 | GPU 0 (nvidia-smi) | GPU 0 (Prometheus) | GPU 1 (nvidia-smi) | GPU 1 (Prometheus) | 일치 |
 |--------|--------------------|--------------------|--------------------|--------------------|------|
 | Utilization | 0% | 0 | 0% | 0 | ✅ |
@@ -106,14 +95,17 @@ nvidia-smi 캡처: [스크린샷](../../../src/08-nvidia-smi-comparison.png)
 
 | 완료 조건 | 작성할 내용 | 상태 |
 |-----------|-------------|------|
-| 각 PromQL 실행 결과 확인 | PromQL 결과 캡처 | ✅ [9.1 캡처](#91-prometheus-ui에서-쿼리-실행) |
+| 각 PromQL 실행 결과 확인 | PromQL 결과 확인 | ✅ [9.1 참조](#91-prometheus-ui에서-쿼리-실행) |
 | nvidia-smi 결과와 비교 검증 완료 | nvidia-smi 비교 표 | ✅ [9.3 비교 결과](#93-nvidia-smi-결과와-비교) |
 
 ---
 
 ## 참고
 
-- 문서 [06 (Alloy — dcgm-exporter 연동)](./06-alloy-dcgm-exporter.md)
-- 문서 [07 (Prometheus 구축)](./07-prometheus-setup.md)
-- 문서 [08 (PromQL 작성)](./08-gpu-metrics-promql.md)
+| 문서 | 내용 |
+|------|------|
+| [GPU-06 — Alloy·dcgm-exporter 연동](./06-alloy-dcgm-exporter.md) | dcgm-exporter scrape 타깃 설정 |
+| [GPU-07 — Prometheus 구축](./07-prometheus-setup.md) | Prometheus 저장·조회 |
+| [GPU-08 — GPU PromQL](./08-gpu-metrics-promql.md) | PromQL 쿼리 작성 |
+
 - [Prometheus querying basics](https://prometheus.io/docs/prometheus/latest/querying/basics/)

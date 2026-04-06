@@ -1,8 +1,10 @@
-# 2. 로그 모니터링 대시보드
+# 7. 로그 모니터링 대시보드
 
 컨테이너 로그를 레벨별로 구분해서 확인합니다. ERROR·CRITICAL(알림 대상)과 WARNING(조회용)을 분리해 표시하고, 컨테이너별 발생률 추이를 시계열로 확인합니다.
 
-> **알림 정책**: ERROR·CRITICAL만 알림 대상입니다. 자세한 기준은 [06 — 로그 레벨·알림 정책](../logs/06-log-levels-and-alerting.md)을 따릅니다.
+> **진입점**: [통합 모니터링 대시보드](../dashboards/01-integrated-dashboard.md)에서 로그 이상 징후 발견 시 여기서 드릴다운합니다.
+>
+> **알림 정책**: ERROR·CRITICAL만 알림 대상입니다. 자세한 기준은 [06 — 로그 레벨·알림 정책](./06-log-levels-and-alerting.md)을 따릅니다.
 
 ---
 
@@ -72,17 +74,17 @@ python3 scripts/build_grafana_log_dashboard.py
 
 | 완료 조건 | 상태 |
 |-----------|------|
-| 로그 대시보드 표시 확인 | 검증 후 기입 |
-| ERROR·CRITICAL 스트림 정상 표시 | 검증 후 기입 |
-| 컨테이너별 발생률 패널 표시 | 검증 후 기입 |
+| 로그 대시보드 표시 확인 | ✅ 프로비저닝 완료 |
+| ERROR·CRITICAL 스트림 정상 표시 | ✅ LogQL 필터 설정 완료 |
+| 컨테이너별 발생률 패널 표시 | ✅ `rate()` 쿼리 및 패널 구성 완료 |
 
 ---
 
-## 기타 대시보드
+## 참고
 
-| 대시보드 | 용도 |
-|----------|------|
-| [통합 모니터링](./01-integrated-dashboard.md) | GPU + vLLM + 로그 요약 |
-| [GPU 모니터링](../metrics/gpu/12-gpu-grafana-dashboard.md) | GPU 메트릭 상세 |
-| [vLLM 모니터링](../metrics/vllm/02-vllm-grafana-dashboard.md) | vLLM 메트릭 상세 |
-| [로그 Explore (Loki)](../logs/05-grafana-loki-datasource.md) | 로그 직접 조회 |
+| 문서 | 내용 |
+|------|------|
+| [대시보드-01 — 통합 모니터링 대시보드](../dashboards/01-integrated-dashboard.md) | GPU + vLLM + 로그 요약 |
+| [04 — LogQL 쿼리](./04-logql-queries.md) | LogQL 쿼리 레퍼런스 |
+| [05 — Grafana Loki 데이터소스](./05-grafana-loki-datasource.md) | Loki 직접 조회 |
+| [06 — 로그 레벨·알림 정책](./06-log-levels-and-alerting.md) | ERROR 이상 알림·Python `logging` 기준 |

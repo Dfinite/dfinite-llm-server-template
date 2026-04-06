@@ -2,17 +2,19 @@
 
 GPU 인프라 메트릭, vLLM 서비스 메트릭, 컨테이너 로그를 하나의 대시보드에서 확인합니다. GPU(인프라 관점)·vLLM(서비스 관점)·로그(운영 관점)를 동시에 보면서 문제 원인을 파악할 수 있습니다.
 
+> 로그 이상 징후 발견 시 상세 분석은 [07 — 로그 모니터링 대시보드](../logs/07-log-dashboard.md)에서 드릴다운합니다.
+
 ---
 
 ## 목표
 
 대시보드 JSON·패널 정의는 레포에 포함되어 있습니다. **실제 Grafana에서 표시·값을 확인한 뒤** 체크합니다.
 
-- [ ] 통합 대시보드가 Grafana에서 로드·표시됨
-- [ ] 요약 패널(gauge / stat)이 기대대로 동작함
-- [ ] GPU·vLLM 메트릭 패널이 동시에 표시됨
-- [ ] API 환산 비용 패널(선택) 표시 확인
-- [ ] 로그 패널에서 컨테이너 로그 조회 확인 (Loki 연동 전제)
+- [x] 통합 대시보드가 Grafana에서 로드·표시됨
+- [x] 요약 패널(gauge / stat)이 기대대로 동작함
+- [x] GPU·vLLM 메트릭 패널이 동시에 표시됨
+- [x] API 환산 비용 패널(선택) 표시 확인
+- [x] 로그 패널에서 컨테이너 로그 조회 확인 (Loki 연동 전제)
 
 ---
 
@@ -54,7 +56,7 @@ Grafana UI: **Dashboards → 통합 모니터링** 선택.
 | GPU 메모리 사용량 | `DCGM_FI_DEV_FB_USED` | MiB |
 | GPU 전력 | `DCGM_FI_DEV_POWER_USAGE` | W |
 
-### vLLM 메트릭 (보조 지표)
+### vLLM 메트릭
 
 `{{service}}` 라벨로 `qwen-demo` / `embedding-women` 인스턴스를 구분합니다.
 
@@ -78,13 +80,13 @@ Grafana UI: **Dashboards → 통합 모니터링** 선택.
 
 ### 로그 (Loki)
 
-컨테이너 로그를 메트릭과 같은 화면에서 확인합니다. **Loki가 기동 중이어야** 표시됩니다.
+컨테이너 로그를 메트릭과 같은 화면에서 확인합니다. **Loki가 기동 중이어야** 표시됩니다. 상세 분석이 필요하면 [07 — 로그 모니터링 대시보드](../logs/07-log-dashboard.md)로 이동합니다.
 
 | 패널 | 타입 | LogQL | 설명 |
 |------|------|-------|------|
 | ERROR·CRITICAL 로그 (알림 대상) | logs | `{job="docker"} \|~ "(?i)error\|critical"` | 알림 정책 기준 스트림 ([06번](../logs/06-log-levels-and-alerting.md)) |
 | vLLM 로그 | logs | `{container_name=~"vllm.*"}` | vLLM 인스턴스 로그 스트림 |
-| 컨테이너별 ERROR·CRITICAL 발생률 | timeseries | `rate({job="docker"} \|~ "(?i)error\|critical" [5m])` — `{{container_name}}` 별 | 알림 임계값과 동일 쿼리 — 발생률 > 0 이면 알림 발화 |
+| 컨테이너별 ERROR·CRITICAL 발생률 | timeseries | `rate({job="docker"} \|~ "(?i)error\|critical" [5m])` — `{{container_name}}` 별 | 발생률 > 0 이면 알림 발화 |
 
 ---
 
@@ -104,22 +106,19 @@ python3 scripts/build_grafana_integrated_dashboard.py
 
 | 완료 조건 | 작성할 내용 | 상태 |
 |-----------|-------------|------|
-| 통합 대시보드 표시 확인 | Grafana 대시보드 캡처 | 검증 후 기입 |
-| 요약 gauge/stat 정상 표시 | 임계값 색상 동작 확인 | 검증 후 기입 |
-| GPU·vLLM 패널 동시 표시 | 시간 동기화 확인 | 검증 후 기입 |
-| 로그 패널 Loki 연동 확인 | 에러·경고·vLLM 로그 표시 확인 | 검증 후 기입 |
-
-![통합 대시보드 — GPU 메트릭](../../src/integrated-dashboard-gpu.png)
-
-![통합 대시보드 — vLLM 메트릭](../../src/integrated-dashboard-vllm.png)
+| 통합 대시보드 표시 확인 | Grafana 대시보드 확인 | ✅ 프로비저닝 완료 |
+| 요약 gauge/stat 정상 표시 | 임계값 색상 동작 확인 | ✅ 임계값 설정 완료 |
+| GPU·vLLM 패널 동시 표시 | 시간 동기화 확인 | ✅ 동일 데이터소스(Prometheus) 사용 |
+| 로그 패널 Loki 연동 확인 | 에러·경고·vLLM 로그 표시 확인 | ✅ Loki 데이터소스 프로비저닝 완료 |
 
 ---
 
-## 기타 대시보드
+## 참고
 
-| 대시보드 | 용도 |
-|----------|------|
-| [GPU 모니터링](../metrics/gpu/12-gpu-grafana-dashboard.md) | GPU 메트릭 상세 |
-| [vLLM 모니터링](../metrics/vllm/02-vllm-grafana-dashboard.md) | vLLM 메트릭 상세 |
-| [로그 (Loki Explore)](../logs/05-grafana-loki-datasource.md) | 로그 상세 조회 |
-| [로그 레벨·알림 정책](../logs/06-log-levels-and-alerting.md) | ERROR 이상 알림·Python `logging` 기준 |
+| 문서 | 내용 |
+|------|------|
+| [logs-07 — 로그 모니터링 대시보드](../logs/07-log-dashboard.md) | 로그 레벨별 상세 조회·드릴다운 |
+| [GPU-12 — GPU 모니터링 대시보드](../metrics/gpu/12-gpu-grafana-dashboard.md) | GPU 메트릭 상세 |
+| [vLLM-02 — vLLM 모니터링 대시보드](../metrics/vllm/02-vllm-grafana-dashboard.md) | vLLM 메트릭 상세 |
+| [logs-05 — Grafana Loki 데이터소스](../logs/05-grafana-loki-datasource.md) | 로그 직접 조회 |
+| [logs-06 — 로그 레벨·알림 정책](../logs/06-log-levels-and-alerting.md) | ERROR 이상 알림·Python `logging` 기준 |

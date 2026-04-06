@@ -109,9 +109,13 @@ Alloy UI(`http://<호스트>:12345`) → **Graph** 탭에서 `loki.source.docker
 
 ## 참고
 
+| 문서 | 내용 |
+|------|------|
+| [02 — Loki 구축](./02-loki-setup.md) | Loki Docker·설정 |
+| [03 — Alloy·Loki 연동](./03-alloy-loki-integration.md) | 연동 확인 |
+| [06 — 로그 레벨·알림 정책](./06-log-levels-and-alerting.md) | ERROR 이상 알림 정책 |
+| [GPU-05 — Alloy 설정](../metrics/gpu/05-alloy-setup.md) | Alloy 메트릭 파이프라인 |
+
 - [Grafana Alloy — loki.source.docker](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.docker/)
 - [Grafana Alloy — loki.process](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.process/)
 - [Grafana Alloy — loki.write](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.write/)
-- Alloy 메트릭 파이프라인: [metrics/gpu/05](../metrics/gpu/05-alloy-setup.md)
-- Loki 구축: [2번](./02-loki-setup.md) · 연동 확인: [3번](./03-alloy-loki-integration.md)
-- 로그 레벨·알림 정책(ERROR 이상): [6번](./06-log-levels-and-alerting.md)
