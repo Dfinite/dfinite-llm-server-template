@@ -80,8 +80,11 @@ status() {
     done < <(get_all_services)
 
     # ── 미등록 컨테이너 (이전 설정으로 실행 중인 것) ──
-    local orphans
-    orphans=$(docker compose ps --format '{{.Name}} {{.Status}}' 2>/dev/null | while read -r cname cstatus; do
+    # docker compose ps는 현재 compose 기준이라 이전 컨테이너를 못 찾음
+    # docker ps로 vllm- 접두사 컨테이너를 직접 탐색
+    local orphans=""
+    while read -r cname cstatus; do
+        [[ -z "$cname" ]] && continue
         local is_registered=false
         for rname in "${registered_names[@]}"; do
             if [[ "$cname" == "vllm-${rname}" ]]; then
@@ -90,17 +93,18 @@ status() {
             fi
         done
         if [[ "$is_registered" == false ]]; then
-            echo "$cname $cstatus"
+            orphans+="${cname} ${cstatus}"$'\n'
         fi
-    done)
+    done < <(docker ps --filter "name=vllm-" --format '{{.Names}} {{.Status}}' 2>/dev/null)
 
     if [[ -n "$orphans" ]]; then
         echo -e "  ${YELLOW}[미등록 컨테이너]${NC}"
         echo -e "  ${YELLOW}  services.json에 없지만 실행 중인 컨테이너:${NC}"
-        while read -r cname cstatus; do
-            echo -e "  ${YELLOW}●${NC} ${cname}: ${cstatus}"
+        while read -r line; do
+            [[ -z "$line" ]] && continue
+            echo -e "  ${YELLOW}●${NC} ${line}"
         done <<< "$orphans"
-        echo -e "  ${YELLOW}  정리: docker compose down --remove-orphans${NC}"
+        echo -e "  ${YELLOW}  정리: docker stop <컨테이너명> && docker rm <컨테이너명>${NC}"
         echo ""
     fi
 
